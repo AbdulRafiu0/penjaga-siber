@@ -663,5 +663,30 @@ app.put('/api/tasks/:taskId/submit', async (c) => {
     
   return c.json({ success: true });
 });
+// 17. NEW CONTACT ROUTES to admin
+app.post('/api/contact', async (c) => {
+  try {
+    const { name, email, subject, message } = await c.req.json();
+    const id = globalThis.crypto.randomUUID();
+    await c.env.aegis_db
+      .prepare("INSERT INTO contact_messages (id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)")
+      .bind(id, name, email, subject, message)
+      .run();
+    return c.json({ success: true, message: 'Message sent successfully!' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.get('/api/admin/messages', async (c) => {
+  try {
+    const { results } = await c.env.aegis_db
+      .prepare("SELECT * FROM contact_messages ORDER BY created_at DESC")
+      .all();
+    return c.json({ success: true, messages: results });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
 
 export default app

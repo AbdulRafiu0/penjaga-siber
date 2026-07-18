@@ -1,0 +1,9 @@
+name = "aegis-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-16"
+migrations_dir = "migrations"
+
+[[d1_databases]]
+binding = "aegis_db"
+database_name = "aegis-db"
+database_id = "e620cf0a-c811-4342-a100-59791d813425"

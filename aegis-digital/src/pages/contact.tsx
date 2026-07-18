@@ -33,12 +33,22 @@ export default function Contact() {
     },
   });
 
-  const onSubmit = (data: FormData) => {
-    console.log('Contact form submitted:', data);
-    setSubmitted(true);
-    form.reset();
-    setTimeout(() => setSubmitted(false), 5000);
-  };
+ const onSubmit = async (data: FormData) => {
+  try {
+    const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (response.ok) {
+      setSubmitted(true);
+      form.reset();
+      setTimeout(() => setSubmitted(false), 5000);
+    }
+  } catch (err) {
+    console.error("Failed to send message:", err);
+  }
+};
 
   const contactMethods = [
     {
