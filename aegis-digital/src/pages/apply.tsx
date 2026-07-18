@@ -21,8 +21,6 @@ const formSchema = z.object({
   country: z.string().min(2, 'Country is required'),
   program: z.string().min(1, 'Please select a program'),
   education: z.string().min(1, 'Please select your education level'),
-  experience: z.string().min(10, 'Please provide some details about your experience'),
-  motivation: z.string().min(50, 'Motivation statement must be at least 50 characters'),
   linkedin: z.string().optional(),
   github: z.string().optional(),
 });
@@ -48,8 +46,6 @@ export default function Apply() {
       country: '',
       program: '',
       education: '',
-      experience: '',
-      motivation: '',
       linkedin: '',
       github: '',
     },
@@ -117,8 +113,6 @@ export default function Apply() {
         phone: data.phone,
         country: data.country,
         education: data.education,
-        experience: data.experience,
-        motivation: data.motivation,
         linkedin: data.linkedin,
         github: data.github,
         studentEmail: data.email
@@ -172,9 +166,7 @@ export default function Apply() {
       fieldsToValidate = ['fullName', 'email', 'phone', 'country'];
     } else if (step === 2) {
       fieldsToValidate = ['program', 'education'];
-    } else if (step === 3) {
-      fieldsToValidate = ['experience', 'motivation'];
-    }
+    } 
 
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
@@ -270,7 +262,6 @@ export default function Apply() {
                 <CardTitle>
                   {step === 1 && 'Personal Information'}
                   {step === 2 && 'Program Selection'}
-                  {step === 3 && 'Background & Motivation'}
                   {step === 4 && 'Review & Submit'}
                 </CardTitle>
               </CardHeader>
@@ -412,45 +403,9 @@ export default function Apply() {
                           exit={{ opacity: 0, x: -20 }}
                           className="space-y-4"
                         >
-                          <FormField
-                            control={form.control}
-                            name="experience"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Relevant Experience</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Describe your relevant experience, projects, or coursework..."
-                                    className="min-h-[120px]"
-                                    {...field}
-                                    data-testid="textarea-experience"
-                                    disabled={isSubmitting}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                  
 
-                          <FormField
-                            control={form.control}
-                            name="motivation"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Motivation Statement</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Why do you want to join this program? What are your career goals?"
-                                    className="min-h-[120px]"
-                                    {...field}
-                                    data-testid="textarea-motivation"
-                                    disabled={isSubmitting}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                  
 
                           <FormField
                             control={form.control}

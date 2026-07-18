@@ -158,7 +158,8 @@ export default function Programs() {
                   </CardContent>
                   
                   <CardFooter className="p-6 pt-0">
-                    <Link href="/apply" className="w-full">
+                    {/* Updated Link from /apply to /register */}
+                    <Link href="/register" className="w-full">
                       <Button className="w-full group" data-testid={`button-apply-${program.title.toLowerCase().replace(/\s+/g, '-')}`}>
                         Apply Now
                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

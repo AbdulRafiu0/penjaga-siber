@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
-import { Shield, Network, CheckCircle, XCircle, ChevronRight, ChevronLeft, UserPlus, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { CheckCircle, ArrowRight, ArrowLeft, Loader2, XCircle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const SCREENING_QUIZ = [
@@ -30,105 +37,666 @@ const SCREENING_QUIZ = [
   { id: 20, question: "Final Logic Evaluation: An admin rule verifies: 'A user is granted dashboard access ONLY if they clear security validation AND hold active course registration parameters.' If a user holds validation but lacks registration metrics, what occurs?", options: ["Access is safely denied", "The system bypasses the rules", "Access is temporarily initialized", "The database creates a placeholder"], correctIndex: 0 }
 ];
 
-export default function Register() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
+const formSchema = z.object({
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  country: z.string().min(2, 'Country is required'),
+  program: z.string().min(1, 'Please select a program'),
+  education: z.string().min(1, 'Please select your education level'),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+});
 
-  const [wizardStep, setWizardStep] = useState<'form' | 'quiz' | 'failed'>('form');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-  const [isRegistering, setIsRegistering] = useState(false);
+type FormData = z.infer<typeof formSchema>;
+
+export default function Register() {
+  const [step, setStep] = useState(1);
+  const [submitted, setSubmitted] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [quizScore, setQuizScore] = useState<number | null>(null);
+  const [quizFailed, setQuizFailed] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setWizardStep('quiz');
-  };
+  const { toast } = useToast();
+  const { internName } = useAuth();
 
-  const handleQuizFinish = async () => {
-    let correctCount = 0;
-    SCREENING_QUIZ.forEach((q, idx) => {
-      if (selectedAnswers[idx] === q.correctIndex) correctCount++;
-    });
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      fullName: internName || '',
+      email: '',
+      password: '',
+      phone: '',
+      country: '',
+      program: '',
+      education: '',
+      linkedin: '',
+      github: '',
+    },
+  });
 
-    if (correctCount >= 12) {
-      setIsRegistering(true);
-      try {
-        const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, quizScore: correctCount })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast({ title: 'Success', description: 'Account created.' });
-          setLocation('/login');
-        } else {
-          throw new Error(data.message || 'Registration failed');
-        }
-      } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Error', description: err.message });
-        setWizardStep('form');
-      } finally {
-        setIsRegistering(false);
+  const programs = [
+    'Cyber Security',
+    'Security Analysis',
+    'Software Development',
+    'Web Development',
+    'Artificial Intelligence',
+    'Python Programming',
+    'Java Programming',
+    'C++ Programming',
+    'JavaScript Programming',
+    'TypeScript Programming',
+    'UI/UX Design',
+  ];
+
+  const educationLevels = [
+    'High School',
+    'Associate Degree',
+    'Bachelor\'s Degree (In Progress)',
+    'Bachelor\'s Degree (Completed)',
+    'Master\'s Degree (In Progress)',
+    'Master\'s Degree (Completed)',
+    'PhD',
+  ];
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+
+    try {
+      // 1. Get existing ID or generate a new one for this new registration
+      let userId = localStorage.getItem('aegis_userId') || crypto.randomUUID();
+      localStorage.setItem('aegis_userId', userId);
+
+      // 2. Prepare the details object
+      const applicationDetails = JSON.stringify({
+        fullName: data.fullName,
+        phone: data.phone,
+        country: data.country,
+        education: data.education,
+        linkedin: data.linkedin,
+        github: data.github,
+        studentEmail: data.email,
+        quizScore: quizScore
+      });
+      
+      // ... now proceed with your existing fetch() call ...
+
+      const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          programName: data.program,
+          details: applicationDetails,
+          password: data.password
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Server rejected application asset submission.');
       }
-    } else {
-      setWizardStep('failed');
+
+      const refNum = `AEG-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
+      setReferenceNumber(refNum);
+      setSubmitted(true);
+
+      toast({
+        title: 'Application Received!',
+        description: 'Your background details have been stored successfully.',
+      });
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Could not write application record to database.';
+      console.error("Database Write Error:", errorMessage);
+      
+      toast({
+        variant: 'destructive',
+        title: 'Submission Error',
+        description: errorMessage,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const currentQ = SCREENING_QUIZ[currentQuestionIndex];
+  const handleQuizSubmit = () => {
+    let score = 0;
+    SCREENING_QUIZ.forEach((q, idx) => {
+      if (selectedAnswers[idx] === q.correctIndex) {
+        score++;
+      }
+    });
+
+    setQuizScore(score);
+
+    if (score >= 12) {
+      setStep(4);
+    } else {
+      setQuizFailed(true);
+    }
+  };
+
+  const quizPassed = quizScore !== null && quizScore >= 12;
+
+  const nextStep = async () => {
+    let fieldsToValidate: (keyof FormData)[] = [];
+    
+    if (step === 1) {
+      fieldsToValidate = ['fullName', 'email', 'password', 'phone', 'country'];
+    } else if (step === 2) {
+      fieldsToValidate = ['program', 'education'];
+    } else if (step === 4) {
+      fieldsToValidate = ['linkedin', 'github'];
+    }
+
+    const isValid = await form.trigger(fieldsToValidate);
+    if (isValid) {
+      setStep(step + 1);
+    }
+  };
+
+  const handleStep3Next = () => {
+    if (quizPassed) {
+      // Already passed on a prior visit to this step - just continue on.
+      setStep(4);
+    } else if (currentQuestionIndex < 19) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    } else {
+      handleQuizSubmit();
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setQuizScore(null);
+    setQuizFailed(false);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+  };
+
+  const prevStep = () => {
+    if (step === 3) {
+      if (quizFailed) {
+        setQuizFailed(false);
+        setQuizScore(null);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswers({});
+        setStep(2);
+      } else if (quizPassed) {
+        // Don't strand the user on the last question - go straight back.
+        setStep(2);
+      } else if (currentQuestionIndex > 0) {
+        setCurrentQuestionIndex((prev) => prev - 1);
+      } else {
+        setStep(2);
+      }
+    } else if (step === 4) {
+      setStep(3);
+    } else {
+      setStep(step - 1);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <MainLayout>
+        <div className="min-h-[80vh] flex items-center justify-center py-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="container mx-auto px-4 sm:px-6 lg:px-8"
+          >
+            <Card className="max-w-2xl mx-auto border-primary glow-blue">
+              <CardContent className="p-12 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: 'spring' }}
+                  className="inline-block mb-6"
+                >
+                  <CheckCircle className="h-24 w-24 text-primary" />
+                </motion.div>
+                
+                <h2 className="text-4xl font-bold mb-4">Application Submitted!</h2>
+                <p className="text-xl text-muted-foreground mb-8">
+                  Thank you for applying to Aegis Digital. We've received your application and will review it shortly.
+                </p>
+                
+                <div className="bg-muted p-6 rounded-lg mb-8">
+                  <p className="text-sm text-muted-foreground mb-2">Your Reference Number</p>
+                  <p className="text-2xl font-mono font-bold text-primary" data-testid="text-reference-number">
+                    {referenceNumber}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Please save this number for your records
+                  </p>
+                </div>
+                
+                <p className="text-muted-foreground mb-8">
+                  You will receive a confirmation email within 24 hours. Our team will contact you within 3-5 business days regarding the next steps.
+                </p>
+                
+                <Button type="button" onClick={() => window.location.href = '/'} data-testid="button-return-home">
+                  Return to Home
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      {wizardStep === 'form' && (
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader>
-            <CardTitle>Register Account</CardTitle>
-            <CardDescription>Enter your details. You will take a 20-question screening test next.</CardDescription>
-          </CardHeader>
-          <form onSubmit={handleFormSubmit}>
-            <CardContent className="space-y-4">
-              <Input placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-              <Input type="email" placeholder="Email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
-              <Input type="password" placeholder="Password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
-            </CardContent>
-            <CardFooter><Button className="w-full">Proceed to Screening</Button></CardFooter>
-          </form>
-        </Card>
-      )}
+    <MainLayout>
+      <div className="py-20">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto"
+          >
+            <div className="text-center mb-8">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Apply to Aegis Digital</h1>
+              <p className="text-xl text-muted-foreground">Step {step} of 5</p>
+            </div>
 
-      {wizardStep === 'quiz' && (
-        <Card className="w-full max-w-2xl shadow-lg">
-          <CardHeader>
-            <CardTitle>Technical Screening ({currentQuestionIndex + 1}/20)</CardTitle>
-            <Progress value={((currentQuestionIndex + 1) / 20) * 100} />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-lg font-medium">{currentQ.question}</p>
-            {currentQ.options.map((opt, idx) => (
-              <Button key={idx} variant={selectedAnswers[currentQuestionIndex] === idx ? "default" : "outline"} className="w-full justify-start text-left h-auto py-3 px-4" onClick={() => setSelectedAnswers({...selectedAnswers, [currentQuestionIndex]: idx})}>
-                {opt}
-              </Button>
-            ))}
-          </CardContent>
-          <CardFooter className="justify-between">
-            <Button variant="ghost" onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))} disabled={currentQuestionIndex === 0}>Back</Button>
-            <Button onClick={() => currentQuestionIndex === 19 ? handleQuizFinish() : setCurrentQuestionIndex(prev => prev + 1)}>
-               {isRegistering ? <Loader2 className="animate-spin" /> : (currentQuestionIndex === 19 ? "Submit Exam" : "Next")}
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+            <div className="mb-8">
+              <div className="flex justify-between mb-2">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <div
+                    key={s}
+                    className={`flex-1 h-2 mx-1 rounded-full transition-colors ${
+                      s <= step ? 'bg-primary' : 'bg-muted'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
 
-      {wizardStep === 'failed' && (
-        <Card className="p-8 text-center max-w-sm">
-            <XCircle className="h-12 w-12 text-destructive mx-auto" />
-            <h2 className="text-xl font-bold mt-4">Screening Failed</h2>
-            <p className="text-sm text-muted-foreground mt-2">You need 12/20 to pass.</p>
-            <Button className="mt-4 w-full" onClick={() => { setWizardStep('form'); setCurrentQuestionIndex(0); setSelectedAnswers({}); }}>Retry</Button>
-        </Card>
-      )}
-    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {step === 1 && 'Personal Information'}
+                  {step === 2 && 'Program Selection'}
+                  {step === 3 && 'Cybersecurity Screening'}
+                  {step === 4 && 'Professional Profiles'}
+                  {step === 5 && 'Review & Submit'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <AnimatePresence mode="wait">
+                      {step === 1 && (
+                        <motion.div
+                          key="step1"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="fullName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Full Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="John Doe" {...field} data-testid="input-full-name" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                  <Input type="email" placeholder="john@example.com" {...field} data-testid="input-email" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" placeholder="At least 6 characters" {...field} data-testid="input-password" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="+1 234 567 8900" {...field} data-testid="input-phone" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="country"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Country</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="United States" {...field} data-testid="input-country" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 2 && (
+                        <motion.div
+                          key="step2"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="program"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Select Program</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-program">
+                                      <SelectValue placeholder="Choose a program" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {programs.map((program) => (
+                                      <SelectItem key={program} value={program}>
+                                        {program}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="education"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Education Level</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-education">
+                                      <SelectValue placeholder="Select your education level" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {educationLevels.map((level) => (
+                                      <SelectItem key={level} value={level}>
+                                        {level}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 3 && (
+                        <motion.div
+                          key="step3"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-4"
+                        >
+                          {quizFailed ? (
+                            <div className="text-center py-8">
+                              <XCircle className="h-16 w-16 text-destructive mx-auto" />
+                              <h3 className="text-2xl font-bold mt-4">Screening Failed</h3>
+                              <p className="text-lg text-muted-foreground mt-2">
+                                You scored {quizScore}/20. Minimum passing score is 12/20.
+                              </p>
+                              <Button 
+                                type="button" 
+                                className="mt-6"
+                                data-testid="button-retry-exam"
+                                onClick={handleRetakeQuiz}
+                              >
+                                Retry Exam
+                              </Button>
+                            </div>
+                          ) : quizPassed ? (
+                            <div className="text-center py-8">
+                              <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+                              <h3 className="text-2xl font-bold mt-4">Screening Passed</h3>
+                              <p className="text-lg text-muted-foreground mt-2" data-testid="text-quiz-score">
+                                You scored {quizScore}/20.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="mt-6"
+                                data-testid="button-retake-exam"
+                                onClick={handleRetakeQuiz}
+                              >
+                                Retake Screening
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="h-5 w-5 text-primary" />
+                                <span className="font-semibold">Question {currentQuestionIndex + 1} of 20</span>
+                              </div>
+                              <Progress value={((currentQuestionIndex + 1) / 20) * 100} className="mb-6" />
+                              
+                              <div className="bg-muted/50 p-6 rounded-lg">
+                                <p className="text-lg font-medium mb-6">
+                                  {SCREENING_QUIZ[currentQuestionIndex].question}
+                                </p>
+                                <div className="space-y-3">
+                                  {SCREENING_QUIZ[currentQuestionIndex].options.map((opt, idx) => (
+                                    <Button
+                                      key={idx}
+                                      type="button"
+                                      variant={selectedAnswers[currentQuestionIndex] === idx ? "default" : "outline"}
+                                      className="w-full justify-start h-auto py-4 px-6 text-left whitespace-normal font-normal"
+                                      data-testid={`button-quiz-option-${idx}`}
+                                      onClick={() => setSelectedAnswers({ ...selectedAnswers, [currentQuestionIndex]: idx })}
+                                    >
+                                      {opt}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+
+                      {step === 4 && (
+                        <motion.div
+                          key="step4"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="linkedin"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>LinkedIn URL (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="https://linkedin.com/in/yourprofile" {...field} data-testid="input-linkedin" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="github"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>GitHub URL (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="https://github.com/yourusername" {...field} data-testid="input-github" disabled={isSubmitting} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+
+                      {step === 5 && (
+                        <motion.div
+                          key="step5"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-6"
+                        >
+                          <div className="bg-muted p-6 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Full Name</p>
+                              <p className="font-semibold" data-testid="text-review-name">{form.getValues('fullName')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Email</p>
+                              <p className="font-semibold" data-testid="text-review-email">{form.getValues('email')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Password</p>
+                              <p className="font-semibold" data-testid="text-review-password">
+                                {'•'.repeat(Math.min(form.getValues('password')?.length || 0, 12)) || 'Not set'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Phone</p>
+                              <p className="font-semibold" data-testid="text-review-phone">{form.getValues('phone')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Country</p>
+                              <p className="font-semibold" data-testid="text-review-country">{form.getValues('country')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Program</p>
+                              <p className="font-semibold text-primary" data-testid="text-review-program">{form.getValues('program')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Education Level</p>
+                              <p className="font-semibold" data-testid="text-review-education">{form.getValues('education')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">LinkedIn</p>
+                              <p className="font-semibold" data-testid="text-review-linkedin">{form.getValues('linkedin') || 'Not provided'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">GitHub</p>
+                              <p className="font-semibold" data-testid="text-review-github">{form.getValues('github') || 'Not provided'}</p>
+                            </div>
+                            
+                            <div className="col-span-1 md:col-span-2 pt-4 border-t border-border">
+                              <p className="text-sm text-muted-foreground">Cybersecurity Screening</p>
+                              <p className="font-semibold text-green-500" data-testid="text-review-quiz-score">
+                                Score: {quizScore} / 20 (Passed)
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground text-center">
+                            Please review your information carefully before submitting
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex justify-between pt-6">
+                      {step > 1 && !(step === 3 && quizFailed) && (
+                        <Button type="button" variant="outline" onClick={prevStep} data-testid="button-previous" disabled={isSubmitting}>
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          {step === 3 && !quizPassed && currentQuestionIndex > 0 ? 'Previous Question' : 'Previous'}
+                        </Button>
+                      )}
+                      
+                      {step < 5 && !(step === 3 && quizFailed) && (
+                        <Button 
+                          type="button" 
+                          className="ml-auto" 
+                          data-testid="button-next"
+                          onClick={step === 3 ? handleStep3Next : nextStep} 
+                          disabled={
+                            isSubmitting || 
+                            (step === 3 && !quizPassed && selectedAnswers[currentQuestionIndex] === undefined)
+                          }
+                        >
+                          {step === 3
+                            ? (quizPassed ? 'Continue' : (currentQuestionIndex < 19 ? 'Next Question' : 'Submit Exam'))
+                            : 'Next'}
+                          {!(step === 3 && !quizPassed) && <ArrowRight className="ml-2 h-4 w-4" />}
+                        </Button>
+                      )}
+
+                      {step === 5 && (
+                        <Button type="submit" className="ml-auto glow-blue" data-testid="button-submit-application" disabled={isSubmitting}>
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            'Submit Application'
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </MainLayout>
   );
 }

@@ -81,35 +81,90 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
 }
 
 // Helper function to dynamically generate your exact 3-part custom Intern ID format
+// Part 1: Domain  (one unique 3-letter code per program - exact match first,
+//         so every one of the 11 tracks gets its own code instead of being
+//         guessed by loose substring matching)
+// Part 2: Year    (from the application's created_at)
+// Part 3: Main ID (derived from the application's database row id)
+const PROGRAM_DOMAIN_CODES: Record<string, string> = {
+  'cyber security': 'CYB',
+  'security analysis': 'SEC',
+  'software development': 'DEV',
+  'web development': 'WEB',
+  'artificial intelligence': 'ARI',
+  'python programming': 'PYT',
+  'java programming': 'JAV',
+  'c++ programming': 'CPP',
+  'javascript programming': 'JSC',
+  'typescript programming': 'TSC',
+  'ui/ux design': 'UIX',
+}
+
 function generateInternId(programName: string, createdAt: string, idString: string): string {
   // Part 1: Internship Domain Prefix Mapping
-  let domainPrefix = 'Gen'
-  const track = programName?.toLowerCase() || ''
-  if (track.includes('cyber') || track.includes('security') || track.includes('testing')) {
-    domainPrefix = 'Cyb'
-  } else if (track.includes('ai') || track.includes('intelligence') || track.includes('python') || track.includes('ari')) {
-    domainPrefix = 'Ari'
-  } else if (track.includes('cloud') || track.includes('architecture')) {
-    domainPrefix = 'Cld'
-  } else if (track.includes('web') || track.includes('software') || track.includes('development')) {
-    domainPrefix = 'Dev'
+  const track = (programName || '').trim().toLowerCase()
+  let domainPrefix = PROGRAM_DOMAIN_CODES[track]
+
+  if (!domainPrefix) {
+    // Fallback for anything that doesn't exactly match one of the 11
+    // programs above (e.g. a legacy/typo'd program name already in the DB).
+    if (track.includes('cyber') || track.includes('security') || track.includes('testing')) {
+      domainPrefix = 'CYB'
+    } else if (track.includes('artificial') || track.includes('intelligence')) {
+      domainPrefix = 'ARI'
+    } else if (track.includes('python')) {
+      domainPrefix = 'PYT'
+    } else if (track.includes('java') && !track.includes('script')) {
+      domainPrefix = 'JAV'
+    } else if (track.includes('c++') || track.includes('cpp')) {
+      domainPrefix = 'CPP'
+    } else if (track.includes('javascript')) {
+      domainPrefix = 'JSC'
+    } else if (track.includes('typescript')) {
+      domainPrefix = 'TSC'
+    } else if (track.includes('ui') || track.includes('ux') || track.includes('design')) {
+      domainPrefix = 'UIX'
+    } else if (track.includes('cloud') || track.includes('architecture')) {
+      domainPrefix = 'CLD'
+    } else if (track.includes('web')) {
+      domainPrefix = 'WEB'
+    } else if (track.includes('software') || track.includes('development')) {
+      domainPrefix = 'DEV'
+    } else {
+      domainPrefix = 'GEN'
+    }
   }
 
   // Part 2: Year Parameter Selection
   const submissionYear = createdAt ? new Date(createdAt).getFullYear() : 2026
 
-  // Part 3: Application Sequence Sequence Identifier
+  // Part 3: Application Sequence Identifier
   // Takes the final 4 uppercase digits of the unique database key descriptor
   const padIndex = idString ? idString.toString().substring(0, 4).toUpperCase() : '001'
 
   return `${domainPrefix}-${submissionYear}-${padIndex}`
 }
 
+
 // --- API ROUTES ---
 
 // Health Check
 app.get('/', (c) => {
   return c.json({ message: 'Aegis Backend API is fully active and running on the Cloudflare Edge network!' })
+})
+
+// PUBLIC: SITE-WIDE STATS (aggregate counts only — no student names/emails,
+// safe to expose on the public homepage, unlike /api/applications)
+app.get('/api/stats', async (c) => {
+  try {
+    const result = await c.env.aegis_db
+      .prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'approved'")
+      .first<{ count: number }>()
+
+    return c.json({ success: true, activeInterns: result?.count ?? 0 })
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500)
+  }
 })
 
 // REGISTER USER WITH ACTIVE 20-QUESTION QUIZ SCREENING GATE
@@ -198,82 +253,86 @@ app.post('/api/login', async (c) => {
 
 // --- APPLICATION ROUTES ---
 
-// 1. SUBMIT AN APPLICATION
+// 1. SUBMIT AN APPLICATION (REPLACEMENT)
 app.post('/api/apply', async (c) => {
   try {
-    const { userId, programName, details } = await c.req.json()
+    const { userId, programName, details, password } = await c.req.json();
 
     if (!userId || !programName) {
-      return c.json({ success: false, message: 'User ID/Email and Program Name are required.' }, 400)
+      return c.json({ success: false, message: 'User ID and Program Name are required.' }, 400);
     }
 
-    let finalUserId = userId
+    let finalUserId = userId;
+    const parsedDetails = JSON.parse(details || '{}');
 
-    if (userId.includes('@')) {
-      const user = await c.env.aegis_db
-        .prepare('SELECT id FROM users WHERE email = ?')
-        .bind(userId)
-        .first<{ id: string }>()
+    // Check if user exists
+    const user = await c.env.aegis_db
+      .prepare('SELECT id FROM users WHERE id = ? OR email = ?')
+      .bind(userId, parsedDetails.studentEmail || '')
+      .first<{ id: string }>();
 
-      if (user) {
-        finalUserId = user.id
-      } else {
-        return c.json({ 
-          success: false, 
-          message: `We couldn't find a registered user account matching the email "${userId}". Please sign up first!` 
-        }, 400)
+    if (user) {
+      finalUserId = user.id;
+
+      // SYNC: Keep the user's profile current with what was just submitted.
+      // Without this, a placeholder name/email created by an earlier
+      // auto-register (e.g. before fullName was being sent, or from a
+      // stale localStorage userId) would stick around forever and never
+      // reflect what the applicant actually typed on later submissions.
+      const syncFields: string[] = [];
+      const syncValues: any[] = [];
+      if (parsedDetails.fullName) {
+        syncFields.push('name = ?');
+        syncValues.push(parsedDetails.fullName);
+      }
+      if (parsedDetails.studentEmail) {
+        syncFields.push('email = ?');
+        syncValues.push(parsedDetails.studentEmail);
+      }
+      if (syncFields.length > 0) {
+        syncValues.push(finalUserId);
+        await c.env.aegis_db
+          .prepare(`UPDATE users SET ${syncFields.join(', ')} WHERE id = ?`)
+          .bind(...syncValues)
+          .run();
       }
     } else {
-      const userExists = await c.env.aegis_db
-        .prepare('SELECT id FROM users WHERE id = ?')
-        .bind(userId)
-        .first()
+      // AUTO-REGISTER: User not found, so we create them now
+      const newUserPasswordHash = password
+        ? await hashPassword(password)
+        : "PENDING_REGISTRATION";
 
-      if (!userExists) {
-        try {
-          const parsedDetails = JSON.parse(details)
-          if (parsedDetails.studentEmail) {
-            const userByEmail = await c.env.aegis_db
-              .prepare('SELECT id FROM users WHERE email = ?')
-              .bind(parsedDetails.studentEmail)
-              .first<{ id: string }>()
-
-            if (userByEmail) {
-              finalUserId = userByEmail.id
-            } else {
-              throw new Error()
-            }
-          } else {
-            throw new Error()
-          }
-        } catch {
-          return c.json({ 
-            success: false, 
-            message: 'Active user profile not found. Please log out, log back in, and try again!' 
-          }, 400)
-        }
-      }
+      await c.env.aegis_db
+        .prepare('INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)')
+        .bind(
+          userId, 
+          parsedDetails.fullName || "New Applicant", 
+          parsedDetails.studentEmail || "pending@aegis.com", 
+          newUserPasswordHash, 
+          "student"
+        )
+        .run();
+      finalUserId = userId;
     }
 
-    const applicationId = globalThis.crypto.randomUUID()
-
+    // Insert Application
+    const applicationId = globalThis.crypto.randomUUID();
     await c.env.aegis_db
-      .prepare(
-        'INSERT INTO applications (id, user_id, program_name, details) VALUES (?, ?, ?, ?)'
-      )
+      .prepare('INSERT INTO applications (id, user_id, program_name, details) VALUES (?, ?, ?, ?)')
       .bind(applicationId, finalUserId, programName, details || '')
-      .run()
+      .run();
 
     return c.json({
       success: true,
       message: 'Application submitted successfully!',
       application: { id: applicationId, userId: finalUserId, programName, status: 'pending' }
-    }, 201)
+    }, 201);
 
   } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500)
+    console.error("Apply API Error:", error);
+    return c.json({ success: false, error: error.message }, 500);
   }
-})
+});
 
 // 2. GET ALL APPLICATIONS (For Admin Dashboard)
 app.get('/api/applications', async (c) => {

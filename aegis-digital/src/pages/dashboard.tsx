@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'wouter';
-import { Shield, BookOpen, Calendar, Download, Bell, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink } from 'lucide-react';
+import { Shield, BookOpen, Calendar, Download, Bell, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,15 +33,23 @@ export default function Dashboard() {
   const syncStudentPipeline = async () => {
     setIsLoadingApps(true);
     try {
-      let resolvedStudentName = internName;
-      const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/applications');
+      const userId = localStorage.getItem('aegis_userId');
+      if (!userId) {
+        setApplications([]);
+        return;
+      }
+
+      // Fetch only this student's own application(s) by ID - scoped server-side,
+      // rather than pulling the full applications list (every applicant's
+      // name, email, phone, and quiz score) down to the browser and filtering
+      // by name client-side.
+      const response = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/student/${userId}`);
       const data = await response.json();
       if (data.success) {
-        const myApps = data.applications.filter((app: any) => app.studentName?.toLowerCase() === resolvedStudentName?.toLowerCase());
-        setApplications(myApps);
-        if (myApps.length > 0) {
-            fetchMySubmissions(myApps[0].id);
-            fetchAssignedTasks(myApps[0].id);
+        setApplications(data.applications);
+        if (data.applications.length > 0) {
+          fetchMySubmissions(data.applications[0].id);
+          fetchAssignedTasks(data.applications[0].id);
         }
       }
     } catch (error: any) {
@@ -67,9 +75,11 @@ export default function Dashboard() {
 
   if (!isLoggedIn) return null;
 
-  const primaryApp = applications[0]; 
-  const isApproved = primaryApp?.status.toLowerCase() === 'approved';
-  const trackStatus = primaryApp?.status || 'Pending';
+  const primaryApp = applications[0];
+  const applicationStatus = primaryApp?.status?.toLowerCase();
+  const isApproved = applicationStatus === 'approved';
+  const isRejected = applicationStatus === 'rejected';
+  const hasNoApplication = !isLoadingApps && !primaryApp;
   const displayInternId = primaryApp?.internId || 'Generating...';
   const isCertificateUnlocked = primaryApp?.certificateIssued === true || Number(primaryApp?.certificateIssued) === 1;
 
@@ -93,11 +103,42 @@ export default function Dashboard() {
       <div className="ml-64 p-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="flex items-center justify-between mb-8">
-            <div><h1 className="text-4xl font-bold mb-2">Welcome back, {internName || "Student"}</h1><p className="text-muted-foreground">Intern ID: <code className="text-sm font-mono bg-muted px-2 py-0.5 rounded text-primary font-bold">{displayInternId}</code></p></div>
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Welcome back, {internName || "Student"}</h1>
+              {!hasNoApplication && (
+                <p className="text-muted-foreground">Intern ID: <code className="text-sm font-mono bg-muted px-2 py-0.5 rounded text-primary font-bold">{displayInternId}</code></p>
+              )}
+            </div>
           </div>
 
-          {!isApproved ? (
-             <Card className="border border-amber-500/20 bg-amber-500/5 p-8 text-center rounded-2xl"><Clock className="h-12 w-12 mx-auto text-amber-500 animate-pulse mb-4" /><h3 className="text-xl font-bold tracking-tight text-amber-500 mb-1">Training Track Locked</h3></Card>
+          {isLoadingApps ? (
+            <Card className="p-8 text-center rounded-2xl">
+              <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Loading your application status...</p>
+            </Card>
+          ) : hasNoApplication ? (
+            <Card className="border border-border bg-card p-8 text-center rounded-2xl">
+              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-xl font-bold tracking-tight mb-1">No Application Found</h3>
+              <p className="text-sm text-muted-foreground mb-4">We couldn't find an application linked to your account.</p>
+              <a href="/register">
+                <Button size="sm">Start an Application</Button>
+              </a>
+            </Card>
+          ) : isRejected ? (
+            <Card className="border border-destructive/20 bg-destructive/5 p-8 text-center rounded-2xl">
+              <XCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
+              <h3 className="text-xl font-bold tracking-tight text-destructive mb-1">Application Not Approved</h3>
+              <p className="text-sm text-muted-foreground">Your application wasn't approved this cycle. Reach out to us if you have questions.</p>
+            </Card>
+          ) : !isApproved ? (
+            <Card className="border border-amber-500/20 bg-amber-500/5 p-8 text-center rounded-2xl">
+              <Clock className="h-12 w-12 mx-auto text-amber-500 animate-pulse mb-4" />
+              <h3 className="text-xl font-bold tracking-tight text-amber-500 mb-1">Application Pending Review</h3>
+              <p className="text-sm text-muted-foreground">
+                You're logged in and your application has been received. Your training track unlocks as soon as an admin approves it.
+              </p>
+            </Card>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-6 mb-8">

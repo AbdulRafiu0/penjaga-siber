@@ -31,6 +31,17 @@ function AnimatedCounter({ end, duration = 2000, suffix = '+' }: { end: number; 
 }
 
 export default function Home() {
+  const [activeInterns, setActiveInterns] = useState(0);
+
+  useEffect(() => {
+    fetch('https://aegis-api.rafiuraza474.workers.dev/api/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setActiveInterns(data.activeInterns);
+      })
+      .catch((err) => console.error('Failed to load stats:', err));
+  }, []);
+
   const programs = [
     { icon: Lock, title: 'Cyber Security', description: 'Master threat detection and security protocols' },
     { icon: Shield, title: 'Security Analysis', description: 'Analyze and fortify digital infrastructures' },
@@ -93,7 +104,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <Link href="/apply">
+              <Link href="/register">
                 <Button size="lg" className="text-lg glow-blue group" data-testid="button-apply-hero">
                   Apply Now
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -122,8 +133,7 @@ export default function Home() {
             >
               <Users className="h-12 w-12 text-primary mx-auto mb-4" />
               <div className="text-5xl font-bold text-primary mb-2">
-                {/* TODO: Update as you onboard real interns. */}
-                <AnimatedCounter end={0} />
+                <AnimatedCounter end={activeInterns} />
               </div>
               <p className="text-muted-foreground">Active Interns</p>
             </motion.div>
@@ -151,7 +161,6 @@ export default function Home() {
             >
               <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
               <div className="text-5xl font-bold text-primary mb-2">
-                {/* TODO: Once you have completions, swap this back to a real completion rate. */}
                 <AnimatedCounter end={2026} duration={800} suffix="" />
               </div>
               <p className="text-muted-foreground">Founded</p>
@@ -253,8 +262,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TODO: Add a real Testimonials section here once you have real intern feedback to share. */}
-
       {/* CTA Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 grid-texture opacity-30" />
@@ -269,7 +276,7 @@ export default function Home() {
             <p className="text-xl text-muted-foreground mb-8">
               Join ambitious students who are building their future in tech
             </p>
-            <Link href="/apply">
+            <Link href="/register">
               <Button size="lg" className="text-lg glow-blue" data-testid="button-apply-cta">
                 Start Your Application
                 <ArrowRight className="ml-2 h-5 w-5" />

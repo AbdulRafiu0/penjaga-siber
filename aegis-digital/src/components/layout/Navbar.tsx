@@ -22,7 +22,8 @@ export function Navbar() {
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About' },
     { href: '/programs', label: 'Programs' },
-    { href: '/apply', label: 'Apply' },
+    // Updated Apply link to /register
+    { href: '/register', label: 'Apply' },
     { href: '/verify', label: 'Verify' },
     { href: '/faq', label: 'FAQ' },
     { href: '/contact', label: 'Contact' },
