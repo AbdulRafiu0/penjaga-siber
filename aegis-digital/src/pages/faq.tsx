@@ -6,20 +6,20 @@ import { MainLayout } from '@/components/layout/MainLayout';
 export default function FAQ() {
   const faqs = [
     {
-      question: 'Who is eligible to apply for Aegis Digital internships?',
+      question: 'Who is eligible to apply for Penjaga Siber internships?',
       answer: 'Our programs are open to students currently enrolled in or recently graduated from accredited educational institutions. We accept applicants from high school through graduate level, depending on the program. A passion for technology and commitment to learning are our primary requirements.',
     },
     {
       question: 'How long do the internship programs last?',
-      answer: 'Program duration varies by track, ranging from 10 to 16 weeks. Each program is designed to provide comprehensive training while fitting into academic schedules. Specific durations are listed on individual program pages.',
+      answer: 'Program duration varies by track, ranging from 4 to 8 weeks. Each program is designed to provide comprehensive training while fitting into academic schedules. Specific durations are listed on individual program pages.',
     },
     {
       question: 'Are the internships remote or onsite?',
-      answer: 'All Aegis Digital internships are fully remote, allowing you to participate from anywhere in the world. We use industry-standard collaboration tools and maintain regular video meetings with mentors and peers.',
+      answer: 'All Penjaga Siber internships are fully remote, allowing you to participate from anywhere in the world. We use industry-standard collaboration tools and maintain regular video meetings with mentors and peers.',
     },
     {
       question: 'Do I receive a certificate upon completion?',
-      answer: 'Yes! Upon successfully completing your program, you will receive an official Aegis Digital certificate. This certificate can be verified through our online verification system and is recognized by employers worldwide.',
+      answer: 'Yes! Upon successfully completing your program, you will receive an official Penjaga Siber certificate. This certificate can be verified through our online verification system and is recognized by employers worldwide.',
     },
     {
       question: 'Are the internships paid or do they offer stipends?',
@@ -27,7 +27,7 @@ export default function FAQ() {
     },
     {
       question: 'What is the application process?',
-      answer: 'The application process involves: (1) Submitting an online application with your background and program choice, (2) Review by our selection committee (3-5 business days), (3) Potential interview with program coordinators, (4) Onboarding and program start. The entire process typically takes 2-3 weeks.',
+      answer: 'The application process involves: (1) Submitting an online application with your background and program choice, (2) Review by our selection committee , (3) Potential interview with program coordinators, (4) Onboarding and program start. The entire process typically takes 1-2 days.',
     },
     {
       question: 'Can I apply to multiple programs?',
@@ -35,7 +35,7 @@ export default function FAQ() {
     },
     {
       question: 'What time commitment is required?',
-      answer: 'Most programs require 15-20 hours per week, with flexible scheduling to accommodate academic commitments. Some advanced programs may require more intensive periods during project milestones. We design schedules to be manageable alongside other responsibilities.',
+      answer: 'Most programs require 6-10 hours per week, with flexible scheduling to accommodate academic commitments. Some advanced programs may require more intensive periods during project milestones. We design schedules to be manageable alongside other responsibilities.',
     },
     {
       question: 'Will I work on real projects?',
@@ -68,7 +68,7 @@ export default function FAQ() {
               <HelpCircle className="h-16 w-16 text-primary mx-auto mb-6 glow-blue" />
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
               <p className="text-xl text-muted-foreground">
-                Everything you need to know about Aegis Digital internships
+                Everything you need to know about Penjaga Siber internships
               </p>
             </div>
 

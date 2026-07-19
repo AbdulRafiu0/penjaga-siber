@@ -39,7 +39,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2 group">
             <Shield className="h-8 w-8 text-primary transition-transform group-hover:scale-110" />
-            <span className="text-xl font-bold tracking-tight">Aegis Digital</span>
+            <span className="text-xl font-bold tracking-tight">Penjaga Siber</span>
           </Link>
 
           {/* Desktop Navigation */}

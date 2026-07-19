@@ -54,20 +54,20 @@ export default function Contact() {
     {
       icon: Mail,
       title: 'Email',
-      value: 'contact@aegisdigital.io',
-      link: 'mailto:contact@aegisdigital.io',
+      value: 'penjagasiber.support@gmail.com',
+      link: 'mailto:penjagasiber.support@gmail.com',
     },
     {
       icon: MessageSquare,
       title: 'WhatsApp',
-      value: '+1 (555) 123-4567',
-      link: 'https://wa.me/15551234567',
+      value: '+923393303369',
+      link: 'https://wa.me/+923393303369',
     },
     {
       icon: Linkedin,
       title: 'LinkedIn',
-      value: 'Aegis Digital',
-      link: 'https://linkedin.com/company/aegis-digital',
+      value: 'Penjaga Siber',
+      link: 'https://linkedin.com/company/penjaga-siber',
     },
   ];
 

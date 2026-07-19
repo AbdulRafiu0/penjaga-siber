@@ -6,7 +6,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 export default function About() {
   // TODO: Update with your real details.
   const leaders = [
-    { name: '[Your Name]', role: 'Founder & CEO', background: '[Add your background here]' },
+    { name: 'Abdul Rafiu', role: 'Founder & CEO', background: 'Cybersecurity graduate passionate about threat detection, incident response, and risk management.' },
   ];
 
   const values = [
@@ -41,7 +41,7 @@ export default function About() {
             className="max-w-4xl mx-auto text-center"
           >
             <Shield className="h-16 w-16 text-primary mx-auto mb-6 glow-blue" />
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">About Aegis Digital</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">About Penjaga Siber</h1>
             <p className="text-xl text-muted-foreground">
               Building the bridge between academic learning and professional excellence in technology
             </p>
@@ -60,13 +60,13 @@ export default function About() {
           >
             <h2 className="text-4xl font-bold mb-6 text-center">Our Mission</h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              Aegis Digital was founded on a simple belief: exceptional talent deserves exceptional opportunities. 
+              Penjaga Siber was founded on a simple belief: exceptional talent deserves exceptional opportunities. 
               We exist to bridge the gap between academic theory and industry practice, providing students with 
-              real-world experience in cutting-edge technology fields.
+              real world experience in cutting edge technology fields.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Through rigorous, hands-on programs led by industry experts, we prepare the next generation of 
-              technology leaders. Our interns don't just learn—they build, create, and solve real problems for 
+              Through rigorous, hands on programs led by industry experts, we prepare the next generation of 
+              technology leaders. Our interns don't just learn they build, create, and solve real problems for 
               real organizations.
             </p>
           </motion.div>
@@ -124,13 +124,17 @@ export default function About() {
               <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
                 <p>
                   {/* TODO: Replace with your real founding story. */}
-                  Aegis Digital was founded on a simple belief: exceptional talent deserves exceptional
-                  opportunities. We're building a bridge between academic theory and industry practice,
-                  giving students real, hands-on experience in cutting-edge technology fields.
+                  I wasn't just building a shield; I was building a sentry.
+                  As a student and a developer, <br/>
+                  I realized my role in this digital frontier wasn't merely to deflect, but to watch over. <br/>
+                  I needed a name that moved beyond the clichés of Greek mythology—a name that felt less like a title and more like a duty.
                 </p>
                 <p>
-                  We're just getting started — add your own story here: why you founded the company,
-                  what problem you're solving, and what makes your programs different.
+                 My thoughts turned to my roots, to the language that anchored my world.<br/>
+                 I began to deconstruct the concept of a guardian in the digital age:<br/>
+                 Penjaga — The keeper, the vigilant watchman.<br/>
+                 Siber — The vast, shifting landscape of the internet.<br/>
+                 Penjaga Siber.
                 </p>
               </div>
             </motion.div>

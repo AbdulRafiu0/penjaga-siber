@@ -46,7 +46,7 @@ export default function VerifyLetter() {
               <FileText className="h-16 w-16 text-primary mx-auto mb-6 glow-blue" />
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Letter Verification</h1>
               <p className="text-xl text-muted-foreground">
-                Verify the authenticity of Aegis Digital offer and completion letters
+                Verify the authenticity of Penjaga Siber offer and completion letters
               </p>
             </div>
 
@@ -84,7 +84,7 @@ export default function VerifyLetter() {
                             <div>
                               <h3 className="text-2xl font-bold mb-2">Letter Verified</h3>
                               <p className="text-muted-foreground">
-                                This is a valid Aegis Digital letter
+                                This is a valid Penjaga Siber letter
                               </p>
                             </div>
                           </div>
@@ -153,7 +153,7 @@ export default function VerifyLetter() {
                 {!searched && (
                   <div className="bg-muted p-6 rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                      Enter the letter ID printed on an Aegis Digital offer or completion letter to verify it.
+                      Enter the letter ID printed on an Penjaga Siber offer or completion letter to verify it.
                       {/* TODO: Once your backend is live, real issued letter IDs will resolve here. */}
                     </p>
                   </div>

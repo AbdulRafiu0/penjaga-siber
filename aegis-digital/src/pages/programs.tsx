@@ -11,7 +11,7 @@ export default function Programs() {
     {
       icon: Lock,
       title: 'Cyber Security',
-      duration: '12 weeks',
+      duration: '4 weeks',
       level: 'Intermediate',
       description: 'Master advanced threat detection, penetration testing, and security infrastructure design. Learn to protect systems from evolving cyber threats.',
       skills: ['Ethical Hacking', 'Network Security', 'Incident Response', 'Security Auditing'],
@@ -19,7 +19,7 @@ export default function Programs() {
     {
       icon: Shield,
       title: 'Security Analysis',
-      duration: '10 weeks',
+      duration: '4 weeks',
       level: 'Beginner',
       description: 'Analyze security vulnerabilities, conduct risk assessments, and develop comprehensive security strategies for organizations.',
       skills: ['Risk Assessment', 'Compliance', 'Security Frameworks', 'Threat Analysis'],
@@ -27,7 +27,7 @@ export default function Programs() {
     {
       icon: Code,
       title: 'Software Development',
-      duration: '16 weeks',
+      duration: '8 weeks',
       level: 'Intermediate',
       description: 'Build production-grade applications using modern development practices, clean architecture, and collaborative workflows.',
       skills: ['Full-Stack Development', 'API Design', 'Testing', 'DevOps'],
@@ -35,7 +35,7 @@ export default function Programs() {
     {
       icon: Globe,
       title: 'Web Development',
-      duration: '12 weeks',
+      duration: '4 weeks',
       level: 'Beginner',
       description: 'Create responsive, accessible web applications using cutting-edge frameworks and industry best practices.',
       skills: ['React', 'TypeScript', 'Responsive Design', 'Web Performance'],
@@ -43,7 +43,7 @@ export default function Programs() {
     {
       icon: Brain,
       title: 'Artificial Intelligence',
-      duration: '14 weeks',
+      duration: '8 weeks',
       level: 'Advanced',
       description: 'Develop intelligent systems using machine learning, deep learning, and natural language processing techniques.',
       skills: ['Machine Learning', 'Neural Networks', 'NLP', 'Model Deployment'],
@@ -51,7 +51,7 @@ export default function Programs() {
     {
       icon: FileCode,
       title: 'Python Programming',
-      duration: '10 weeks',
+      duration: '8 weeks',
       level: 'Beginner',
       description: 'Master Python for data analysis, automation, web development, and scientific computing applications.',
       skills: ['Data Structures', 'OOP', 'Libraries', 'Automation'],
@@ -59,7 +59,7 @@ export default function Programs() {
     {
       icon: Coffee,
       title: 'Java Programming',
-      duration: '12 weeks',
+      duration: '8 weeks',
       level: 'Intermediate',
       description: 'Build robust enterprise applications using Java, Spring Boot, and modern JVM technologies.',
       skills: ['Core Java', 'Spring Framework', 'JPA', 'Microservices'],
@@ -67,7 +67,7 @@ export default function Programs() {
     {
       icon: Layers,
       title: 'C++ Programming',
-      duration: '14 weeks',
+      duration: '8 weeks',
       level: 'Advanced',
       description: 'Master systems programming, performance optimization, and low-level computing with modern C++.',
       skills: ['Memory Management', 'STL', 'Concurrency', 'Performance'],
@@ -75,7 +75,7 @@ export default function Programs() {
     {
       icon: Zap,
       title: 'JavaScript Programming',
-      duration: '10 weeks',
+      duration: '8 weeks',
       level: 'Beginner',
       description: 'Learn JavaScript from fundamentals to advanced concepts including async programming and modern ES6+ features.',
       skills: ['ES6+', 'Async/Await', 'DOM Manipulation', 'Node.js'],
@@ -83,7 +83,7 @@ export default function Programs() {
     {
       icon: FileCode,
       title: 'TypeScript Programming',
-      duration: '10 weeks',
+      duration: '4 weeks',
       level: 'Intermediate',
       description: 'Build type-safe applications with TypeScript, enhancing code quality and developer productivity.',
       skills: ['Type Systems', 'Generics', 'Advanced Types', 'Tooling'],
@@ -91,7 +91,7 @@ export default function Programs() {
     {
       icon: Palette,
       title: 'UI/UX Design',
-      duration: '12 weeks',
+      duration: '8 weeks',
       level: 'Beginner',
       description: 'Design beautiful, intuitive user experiences through research, prototyping, and iterative design processes.',
       skills: ['User Research', 'Wireframing', 'Prototyping', 'Design Systems'],

@@ -45,7 +45,7 @@ export default function Verify() {
             <div className="text-center mb-12">
               <Shield className="h-16 w-16 text-primary mx-auto mb-6 glow-blue" />
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Certificate Verification</h1>
-              <p className="text-xl text-muted-foreground">Verify the authenticity of Aegis Digital certificates</p>
+              <p className="text-xl text-muted-foreground">Verify the authenticity of Penjaga Siber certificates</p>
             </div>
 
             <Card>
@@ -53,7 +53,7 @@ export default function Verify() {
               <CardContent>
                 <div className="flex gap-2 mb-6">
                   <Input
-                    placeholder="e.g., Cyb-2026-XXXX"
+                    placeholder="domin-year-XXXX"
                     value={searchId}
                     onChange={(e) => setSearchId(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -74,7 +74,7 @@ export default function Verify() {
                             <CheckCircle className="h-12 w-12 text-primary flex-shrink-0" />
                             <div>
                               <h3 className="text-2xl font-bold mb-2">Certificate Verified</h3>
-                              <p className="text-muted-foreground">This is a valid Aegis Digital certificate</p>
+                              <p className="text-muted-foreground">This is a valid Penjaga Siber certificate</p>
                             </div>
                           </div>
                           <div className="space-y-4">

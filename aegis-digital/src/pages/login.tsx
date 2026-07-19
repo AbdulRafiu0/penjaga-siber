@@ -99,7 +99,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <Shield className="h-12 w-12 text-primary glow-blue" />
-            <span className="text-2xl font-bold">Aegis Digital</span>
+            <span className="text-2xl font-bold">Penjaga Siber</span>
           </Link>
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
           <p className="text-muted-foreground">Sign in to access your dashboard</p>

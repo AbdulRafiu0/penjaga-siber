@@ -9,10 +9,15 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Shield className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">Aegis Digital</span>
+              <span className="text-lg font-bold">Penjaga Siber</span>
             </div>
+            <p className="text-xs font-medium tracking-wide text-primary/80 mb-2">
+              • Cybersecurity<br/>
+              • Training<br/>
+              • Digital Defense
+            </p>
             <p className="text-sm text-muted-foreground">
-              Securing the future of tech professionals through world-class internship programs.
+              Securing the future of tech professionals through world class internship programs.
             </p>
           </div>
 
@@ -50,11 +55,6 @@ export function Footer() {
                   Certificate Verification
                 </Link>
               </li>
-              <li>
-                <Link href="/verify-letter" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Letter Verification
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -67,7 +67,7 @@ export function Footer() {
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-twitter">
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-github">
+              <a href="https://github.com/penjagasiber" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-github">
                 <Github className="h-5 w-5" />
               </a>
             </div>
@@ -78,7 +78,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Aegis Digital. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Penjaga Siber. All rights reserved.</p>
         </div>
       </div>
     </footer>

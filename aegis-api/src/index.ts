@@ -150,7 +150,7 @@ function generateInternId(programName: string, createdAt: string, idString: stri
 
 // Health Check
 app.get('/', (c) => {
-  return c.json({ message: 'Aegis Backend API is fully active and running on the Cloudflare Edge network!' })
+  return c.json({ message: 'Penjaga Siber Backend API is fully active and running on the Cloudflare Edge network!' })
 })
 
 // PUBLIC: SITE-WIDE STATS (aggregate counts only — no student names/emails,
@@ -307,7 +307,7 @@ app.post('/api/apply', async (c) => {
         .bind(
           userId, 
           parsedDetails.fullName || "New Applicant", 
-          parsedDetails.studentEmail || "pending@aegis.com", 
+          parsedDetails.studentEmail || "pending@penjagasiber.com", 
           newUserPasswordHash, 
           "student"
         )

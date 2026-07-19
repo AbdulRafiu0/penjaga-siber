@@ -268,7 +268,7 @@ export default function Register() {
                 
                 <h2 className="text-4xl font-bold mb-4">Application Submitted!</h2>
                 <p className="text-xl text-muted-foreground mb-8">
-                  Thank you for applying to Aegis Digital. We've received your application and will review it shortly.
+                  Thank you for applying to Penjaga Siber. We've received your application and will review it shortly.
                 </p>
                 
                 <div className="bg-muted p-6 rounded-lg mb-8">
@@ -306,7 +306,7 @@ export default function Register() {
             className="max-w-3xl mx-auto"
           >
             <div className="text-center mb-8">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Apply to Aegis Digital</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Apply to Penjaga Siber</h1>
               <p className="text-xl text-muted-foreground">Step {step} of 5</p>
             </div>
 
@@ -352,7 +352,7 @@ export default function Register() {
                               <FormItem>
                                 <FormLabel>Full Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="John Doe" {...field} data-testid="input-full-name" disabled={isSubmitting} />
+                                  <Input placeholder="Name" {...field} data-testid="input-full-name" disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -366,7 +366,7 @@ export default function Register() {
                               <FormItem>
                                 <FormLabel>Email Address</FormLabel>
                                 <FormControl>
-                                  <Input type="email" placeholder="john@example.com" {...field} data-testid="input-email" disabled={isSubmitting} />
+                                  <Input type="email" placeholder="mails@example.com" {...field} data-testid="input-email" disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
