@@ -10,8 +10,9 @@ const app = new Hono<{ Bindings: Bindings }>()
 // 1. Enable CORS for both Localhost AND your Live Production Site
 app.use('/*', cors({
   origin: [
-    'http://localhost:5173', 
-    'https://aegis-digital.pages.dev' // ADD YOUR LIVE SITE URL HERE
+    'http://localhost:5173',
+    'https://penjaga-siber.pages.dev',
+    'https://penjagasiber.cc.cd' // <--- Add this exactly
   ],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],

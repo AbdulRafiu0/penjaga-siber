@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, MessageSquare, Linkedin, CheckCircle } from 'lucide-react';
+import { Mail, MessageSquare, Linkedin, CheckCircle, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -58,10 +58,10 @@ export default function Contact() {
       link: 'mailto:penjagasiber.support@gmail.com',
     },
     {
-      icon: MessageSquare,
-      title: 'WhatsApp',
-      value: '+923393303369',
-      link: 'https://wa.me/+923393303369',
+      icon: Github,
+      title: 'GitHub',
+      value: 'penjagasiber',
+      link: 'https://github.com/penjagasiber',
     },
     {
       icon: Linkedin,
