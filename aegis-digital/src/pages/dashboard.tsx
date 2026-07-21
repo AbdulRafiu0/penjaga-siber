@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { generateOfferLetter } from "@/lib/pdf/offerLetter";
 import { generateCertificate } from "@/lib/pdf/certificate";
 import { generateRecommendation } from "@/lib/pdf/recommendation";
-import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle } from 'lucide-react';
+import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -130,13 +130,6 @@ export default function Dashboard() {
   const isRejected = primaryApp?.status === "rejected";
   const displayInternId = primaryApp?.internId || "Pending";
   const isCertificateUnlocked = Boolean(primaryApp?.certificateIssued);
-
-  const resources = [
-    { title: 'Security Best Practices Guide', type: 'PDF' },
-    { title: 'Network Analysis Tools Tutorial', type: 'Video' },
-    { title: 'Project Requirements Document', type: 'Doc' },
-    { title: 'Mentor Office Hours Schedule', type: 'Calendar' },
-  ];
 
   const handleDownloadOfferLetter = async () => {
     if (!primaryApp) return;
@@ -320,7 +313,20 @@ export default function Dashboard() {
                     })}
                   </CardContent>
                 </Card>
-                <Card><CardHeader><CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Learning Resources</CardTitle></CardHeader><CardContent className="space-y-3">{resources.map((r, i) => <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary transition-colors"><div><p className="font-semibold">{r.title}</p><p className="text-sm text-muted-foreground">{r.type}</p></div><Button variant="ghost" size="sm">View</Button></div>)}</CardContent></Card>
+                <Card>
+                  <CardHeader><CardTitle className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-primary" /> Announcements</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {announcements.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No announcements yet.</p>
+                    ) : announcements.map((a: any) => (
+                      <div key={a.id} className="p-3 rounded-lg border border-border">
+                        <p className="font-semibold text-sm">{a.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{a.body}</p>
+                        <p className="text-[11px] text-muted-foreground mt-2">{new Date(a.created_at).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -345,19 +351,6 @@ export default function Dashboard() {
                 </Card>
               )}
 
-              {announcements.length > 0 && (
-                <Card className="mt-6">
-                  <CardHeader><CardTitle className="text-base">Announcements</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {announcements.map((a: any) => (
-                      <div key={a.id} className="p-3 border rounded-lg">
-                        <p className="font-semibold text-sm">{a.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{a.body}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
             </>
           )}
         </motion.div>
