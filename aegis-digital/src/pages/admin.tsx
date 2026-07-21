@@ -25,6 +25,7 @@ export default function Admin() {
   const [dbApplications, setDbApplications] = useState<DBApplication[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [assignedTasksList, setAssignedTasksList] = useState<any[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -90,6 +91,7 @@ export default function Admin() {
       fetchApplications();
       fetchSubmissions();
       fetchMessages();
+      fetchAssignedTasks();
     }
   }, []);
 
@@ -139,6 +141,7 @@ export default function Admin() {
       setAssigningId(null);
       setTaskName('');
       setTaskPdf(null);
+      fetchAssignedTasks();
     } else {
       toast({
         variant: 'destructive',
@@ -231,6 +234,7 @@ export default function Admin() {
     setBulkTaskPdf(null);
 
     fetchApplications();
+    fetchAssignedTasks();
   } catch {
     toast({
       variant: 'destructive',
@@ -293,10 +297,28 @@ export default function Admin() {
     } catch (e) { toast({ variant: 'destructive', title: "Network error." }); }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => { e.preventDefault(); const matches = allowedAdmins.find(acc => acc.username === inputUsername && acc.password === inputPassword); if (matches) { sessionStorage.setItem('aegis_admin_session', 'true'); sessionStorage.setItem('aegis_admin_user', inputUsername); setIsAdminLoggedIn(true); setLoggedInAdmin(inputUsername); fetchApplications(); fetchSubmissions(); fetchMessages(); toast({ title: "Access Granted", description: `Welcome back, ${inputUsername}!` }); } else { toast({ variant: 'destructive', title: "Authentication Failed", description: "Invalid admin credentials." }); } };
+  const handleAdminLogin = (e: React.FormEvent) => { e.preventDefault(); const matches = allowedAdmins.find(acc => acc.username === inputUsername && acc.password === inputPassword); if (matches) { sessionStorage.setItem('aegis_admin_session', 'true'); sessionStorage.setItem('aegis_admin_user', inputUsername); setIsAdminLoggedIn(true); setLoggedInAdmin(inputUsername); fetchApplications(); fetchSubmissions(); fetchMessages(); fetchAssignedTasks(); toast({ title: "Access Granted", description: `Welcome back, ${inputUsername}!` }); } else { toast({ variant: 'destructive', title: "Authentication Failed", description: "Invalid admin credentials." }); } };
   const fetchApplications = async () => { setIsLoadingApps(true); try { const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/applications'); const data = await response.json(); if (data.success) setDbApplications(data.applications); } catch (error: any) { toast({ variant: 'destructive', title: 'Fetch Error', description: 'Could not sync records.' }); } finally { setIsLoadingApps(false); } };
   const fetchSubmissions = async () => { try { const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/admin/submissions'); const data = await response.json(); if (data.success) setSubmissions(data.submissions); } catch (error: any) { toast({ variant: 'destructive', title: 'Fetch Error', description: 'Could not sync submissions.' }); } };
   const fetchMessages = async () => { try { const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/admin/messages'); const data = await response.json(); if (data.success) setMessages(data.messages); } catch (error: any) { toast({ variant: 'destructive', title: 'Fetch Error', description: 'Could not sync messages.' }); } };
+  const fetchAssignedTasks = async () => { try { const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/admin/tasks'); const data = await response.json(); if (data.success) setAssignedTasksList(data.tasks); } catch (error: any) { toast({ variant: 'destructive', title: 'Fetch Error', description: 'Could not sync assigned tasks.' }); } };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm('Delete this assigned task? Any student submission for it will be removed too.')) return;
+    try {
+      const res = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/admin/tasks/${taskId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Task deleted', description: data.message });
+        fetchAssignedTasks();
+        fetchSubmissions();
+      } else {
+        toast({ variant: 'destructive', title: 'Delete failed', description: data.message });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error' });
+    }
+  };
   const handleUpdateStatus = async (appId: string, newStatus: string) => { try { const response = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/${appId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus.toLowerCase() }), }); if (response.ok) { setDbApplications(prev => prev.map(app => app.id === appId ? { ...app, status: newStatus.toLowerCase() } : app)); toast({ title: `Status Updated`, description: `Application successfully ${newStatus.toLowerCase()}.` }); } } catch (e) { toast({ variant: 'destructive', title: 'Error', description: 'Failed to rewrite state.' }); } };
   const handleIssueCertificate = async (appId: string) => { if (!window.confirm("Issue certificate for this student?")) return; try { const response = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/${appId}/issue-certificate`, { method: 'PUT' }); if (response.ok) { setDbApplications(prev => prev.map(app => app.id === appId ? { ...app, certificateIssued: true } : app)); toast({ title: "Certificate Issued", description: "The student has been marked as certified." }); } } catch (e) { toast({ variant: 'destructive', title: "Error", description: "Failed to issue certificate." }); } };
   const handleUpdateSubmissionStatus = async (subId: string, newStatus: string) => { try { const response = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/admin/submissions/${subId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus.toLowerCase(), feedback: "" }), }); if (response.ok) { setSubmissions(prev => prev.map(sub => sub.id === subId ? { ...sub, status: newStatus.toLowerCase() } : sub)); toast({ title: 'Status Updated', description: `Submission successfully marked as ${newStatus.toLowerCase()}.` }); } } catch (e) { toast({ variant: 'destructive', title: 'Error', description: 'Failed to update submission status.' }); } };
@@ -414,7 +436,15 @@ export default function Admin() {
                           </TableCell> 
                           <TableCell><code className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded">{app.internId || '—'}</code></TableCell> 
                           <TableCell>
-                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssigningId(app.id)}><Plus className="h-3 w-3 mr-1" /> Assign Task</Button>
+                            <div className="space-y-1.5">
+                              {assignedTasksList.filter(t => t.application_id === app.id).map(t => (
+                                <div key={t.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1">
+                                  <span className="truncate max-w-[120px]" title={t.title}>{t.title}</span>
+                                  <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive shrink-0" onClick={() => handleDeleteTask(t.id)}><Trash2 className="h-3 w-3" /></Button>
+                                </div>
+                              ))}
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssigningId(app.id)}><Plus className="h-3 w-3 mr-1" /> Assign Task</Button>
+                            </div>
                           </TableCell> 
                           <TableCell className="text-sm font-medium text-primary">{app.programName}</TableCell> 
                           <TableCell><Badge variant={app.status === 'approved' ? 'default' : app.status === 'rejected' ? 'destructive' : 'secondary'}>{app.status}</Badge></TableCell> 
