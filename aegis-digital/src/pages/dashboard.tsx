@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { generateOfferLetter } from "@/lib/pdf/offerLetter";
 import { generateCertificate } from "@/lib/pdf/certificate";
 import { generateRecommendation } from "@/lib/pdf/recommendation";
-import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone } from 'lucide-react';
+import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone, CreditCard, UploadCloud, ImageIcon, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import SubmitTaskModal from '@/components/SubmitTaskModal';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
+  payment_requested?: number | boolean; payment_uploaded?: number | boolean; payment_verified?: number | boolean;
+  payment_rejected?: number | boolean; payment_screenshot_key?: string | null;
 }
 
 function formatDate(d: Date) {
@@ -60,6 +62,25 @@ export default function Dashboard() {
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [isUploadingPayment, setIsUploadingPayment] = useState(false);
+  const [isDraggingPayment, setIsDraggingPayment] = useState(false);
+
+  const PAYMENT_ALLOWED_EXT = ['png', 'jpg', 'jpeg', 'pdf'];
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const selectPaymentFile = (selected: File | null) => {
+    if (!selected) { setPaymentFile(null); return; }
+    const ext = selected.name.split('.').pop()?.toLowerCase() || '';
+    if (!PAYMENT_ALLOWED_EXT.includes(ext)) {
+      toast({ variant: 'destructive', title: 'Unsupported file type', description: 'Only PNG, JPG, JPEG, or PDF files are accepted.' });
+      return;
+    }
+    setPaymentFile(selected);
+  };
 
   useEffect(() => {
     if (!isLoggedIn) setLocation('/login');
@@ -271,6 +292,125 @@ export default function Dashboard() {
             </Card>
           ) : (
             <>
+              {progress.assigned > 0 && progress.approved === progress.assigned && !isCertificateUnlocked && (() => {
+                const isVerified = Boolean(primaryApp?.payment_verified);
+                const isRejectedPayment = Boolean(primaryApp?.payment_rejected);
+                const isUploaded = Boolean(primaryApp?.payment_uploaded);
+                const isRequested = Boolean(primaryApp?.payment_requested);
+                const isPdf = paymentFile?.name.toLowerCase().endsWith('.pdf');
+
+                const statusConfig = isVerified
+                  ? { label: 'Verified', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' }
+                  : isRejectedPayment
+                  ? { label: 'Rejected — please resubmit', className: 'bg-destructive/10 text-destructive border-destructive/30' }
+                  : isUploaded
+                  ? { label: 'Pending Review', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' }
+                  : isRequested
+                  ? { label: 'Awaiting Screenshot', className: 'bg-blue-500/10 text-blue-600 border-blue-500/30' }
+                  : { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' };
+
+                return (
+                  <Card className="mb-8 border-primary/20 bg-card shadow-md overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12" />
+                    <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+                      <CardTitle className="text-xl flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Certificate Payment</CardTitle>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusConfig.className}`}>{statusConfig.label}</span>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {!isVerified && (
+                        <>
+                          {!isRequested ? (
+                            <div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-sm">All tasks approved — you're eligible for your certificate</p>
+                                <p className="text-xs text-muted-foreground">Request payment instructions to get started.</p>
+                              </div>
+                              <Button size="sm" className="w-full sm:w-auto glow-blue" disabled={isRequestingPayment} onClick={handleRequestPayment}>
+                                {isRequestingPayment ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1.5" />} Request Certificate Payment
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {isRejectedPayment && (
+                                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-sm text-destructive">
+                                  <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                                  <span>Your last screenshot couldn't be verified. Please upload a clear proof of payment.</span>
+                                </div>
+                              )}
+                              {isUploaded && !isRejectedPayment ? (
+                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm text-amber-700">
+                                  <Clock className="h-4 w-4 shrink-0" />
+                                  <span>Your screenshot was uploaded and is awaiting admin review.</span>
+                                </div>
+                              ) : null}
+
+                              <label
+                                htmlFor="payment-screenshot-input"
+                                onDragOver={(e) => { e.preventDefault(); setIsDraggingPayment(true); }}
+                                onDragLeave={() => setIsDraggingPayment(false)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setIsDraggingPayment(false);
+                                  selectPaymentFile(e.dataTransfer.files?.[0] || null);
+                                }}
+                                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors ${
+                                  isDraggingPayment ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                                }`}
+                              >
+                                <UploadCloud className={`h-8 w-8 ${isDraggingPayment ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                                <p className="text-sm font-medium">Drag & drop your payment screenshot here</p>
+                                <p className="text-xs text-muted-foreground">or click to browse — PNG, JPG, JPEG, or PDF</p>
+                                <input
+                                  id="payment-screenshot-input"
+                                  type="file"
+                                  accept=".png,.jpg,.jpeg,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => selectPaymentFile(e.target.files?.[0] || null)}
+                                  disabled={isUploadingPayment}
+                                />
+                              </label>
+
+                              {paymentFile && (
+                                <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                      {isPdf ? <FileText className="h-4.5 w-4.5 text-primary" /> : <ImageIcon className="h-4.5 w-4.5 text-primary" />}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium truncate">{paymentFile.name}</p>
+                                      <p className="text-xs text-muted-foreground">{formatFileSize(paymentFile.size)}</p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPaymentFile(null)}
+                                    disabled={isUploadingPayment}
+                                    className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                    aria-label="Remove file"
+                                  >
+                                    <XCircle className="h-4.5 w-4.5" />
+                                  </button>
+                                </div>
+                              )}
+
+                              <Button size="sm" className="w-full sm:w-auto glow-blue" disabled={!paymentFile || isUploadingPayment} onClick={handleUploadPaymentScreenshot}>
+                                {isUploadingPayment ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading...</> : <>{isRejectedPayment ? <RefreshCw className="h-4 w-4 mr-1.5" /> : <UploadCloud className="h-4 w-4 mr-1.5" />} {isRejectedPayment ? 'Resubmit Screenshot' : 'Upload Screenshot'}</>}
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {isVerified && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-sm text-emerald-700">
+                          <CheckCircle className="h-4 w-4 shrink-0" />
+                          <span>Payment verified — your certificate is ready below.</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
               <div className="grid grid-cols-3 gap-6 mb-8">
                 <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Assigned</p><p className="text-3xl font-bold">{progress.assigned}</p></CardContent></Card>
                 <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Approved</p><p className="text-3xl font-bold text-primary">{progress.approved}</p></CardContent></Card>
@@ -291,10 +431,18 @@ export default function Dashboard() {
                   <CardContent className="space-y-4">
                     {assignedTasks.map((task) => {
                       const hasSubmitted = mySubmissions.find(s => s.task_id === task.title);
+                      const isOverdue = task.due_date && !hasSubmitted && new Date(task.due_date) < new Date(new Date().toDateString());
                       return (
                         <details key={task.id} className="group border rounded-lg p-3 hover:border-primary transition-all">
                           <summary className="font-semibold cursor-pointer list-none flex justify-between items-center">
-                            {task.title}
+                            <span>
+                              {task.title}
+                              {task.due_date && (
+                                <span className={`block text-[11px] font-normal mt-0.5 flex items-center gap-1 ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                  <Calendar className="h-3 w-3" /> Due {new Date(task.due_date).toLocaleDateString()}{isOverdue ? ' — overdue' : ''}
+                                </span>
+                              )}
+                            </span>
                             {hasSubmitted ? <Badge variant="secondary" className="text-[10px]">Submitted</Badge> : <span className="text-[10px] bg-muted px-2 py-1 rounded">Expand</span>}
                           </summary>
                           <div className="mt-3 pt-3 border-t space-y-3">
@@ -333,23 +481,6 @@ export default function Dashboard() {
                 <Card className="md:col-span-2 border border-primary/20 bg-card shadow-md overflow-hidden relative group"><div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors" /><CardHeader><CardTitle className="text-xl flex items-center gap-2"><Award className="h-5 w-5 text-primary" /> Verification & Placement Package</CardTitle></CardHeader><CardContent className="space-y-4"><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><FileText className="h-4 w-4 text-primary" /> Appointment & Offer Letter</p></div><Button size="sm" className="w-full sm:w-auto glow-blue" disabled={isGeneratingOffer} onClick={handleDownloadOfferLetter}>{isGeneratingOffer ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : <><Download className="mr-2 h-4 w-4" /> Download Offer Letter</>}</Button></div><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> Corporate Network Clearance Token</p><p className="text-xs text-muted-foreground">ID: <code className="bg-background px-1.5 py-0.5 rounded text-primary border font-bold font-mono text-[11px]">{displayInternId}</code></p></div><Button size="sm" variant="outline" className="w-full sm:w-auto text-xs" onClick={() => { navigator.clipboard.writeText(displayInternId); toast({ title: "Copied Token", description: "ID token copied." }); }}>Copy ID Token</Button></div></CardContent></Card>
                 <Card className={`border shadow-sm flex flex-col justify-between transition-all duration-300 ${isCertificateUnlocked ? 'border-primary bg-card glow-blue' : 'border-border bg-card'}`}><CardHeader><CardTitle className="text-base font-bold flex items-center gap-1.5"><CheckCircle className={`h-4 w-4 ${isCertificateUnlocked ? 'text-primary' : 'text-muted-foreground'}`} /> Program Verification</CardTitle></CardHeader><CardContent className="pb-6 flex-1 flex flex-col justify-between">{isCertificateUnlocked ? <><div className="text-center py-4 border border-primary/20 rounded-xl bg-primary/5"><Award className="h-10 w-10 mx-auto text-primary animate-bounce mb-2" /><p className="text-xs font-bold text-foreground">Certificate Unlocked!</p></div><Button className="w-full mt-4 text-xs h-9 glow-blue" disabled={isGeneratingCert} onClick={handleDownloadCertificate}>{isGeneratingCert ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Generating...</> : <><Download className="mr-1.5 h-3.5 w-3.5" /> Download Certificate</>}</Button><Button variant="outline" className="w-full mt-2 text-xs h-9" disabled={isGeneratingLOR} onClick={handleDownloadLetterOfRecommendation}>{isGeneratingLOR ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Generating...</> : <><FileText className="mr-1.5 h-3.5 w-3.5" /> Download Recommendation Letter</>}</Button></> : <><div className="text-center py-4 border border-dashed rounded-xl bg-muted/20"><Lock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" /><p className="text-xs font-semibold text-muted-foreground">Locked Pending Track Completion</p></div><Button disabled className="w-full mt-4 text-xs h-9">Certificate Unavailable</Button></>}</CardContent></Card>
               </div>
-
-              {progress.assigned > 0 && progress.approved === progress.assigned && !isCertificateUnlocked && (
-                <Card className="mt-6 border-amber-500/20 bg-amber-500/5">
-                  <CardHeader><CardTitle className="text-base">Certificate Payment</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button size="sm" disabled={isRequestingPayment} onClick={handleRequestPayment}>
-                      {isRequestingPayment ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null} Request Certificate Payment
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <input type="file" accept=".png,.jpg,.jpeg,.pdf" onChange={e => setPaymentFile(e.target.files?.[0] || null)} />
-                      <Button size="sm" variant="outline" disabled={!paymentFile || isUploadingPayment} onClick={handleUploadPaymentScreenshot}>
-                        {isUploadingPayment ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null} Upload Screenshot
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
             </>
           )}

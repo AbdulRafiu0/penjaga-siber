@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Users, FileText, Clock, Award, Trash2, Edit3, X, Save, CheckCircle, XCircle, Mail, Loader2, Lock, FileCheck, User, Plus, MoreVertical } from 'lucide-react';
+import { Shield, Users, FileText, Clock, Award, Trash2, Edit3, X, Save, CheckCircle, XCircle, Mail, Loader2, Lock, FileCheck, User, Plus, MoreVertical, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,10 +45,12 @@ export default function Admin() {
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [taskName, setTaskName] = useState('');
   const [taskPdf, setTaskPdf] = useState<File | null>(null);
+  const [taskDueDate, setTaskDueDate] = useState('');
 
   const [bulkAssignDept, setBulkAssignDept] = useState<string | null>(null);
   const [bulkTaskName, setBulkTaskName] = useState('');
   const [bulkTaskPdf, setBulkTaskPdf] = useState<File | null>(null);
+  const [bulkTaskDueDate, setBulkTaskDueDate] = useState('');
   const [isBulkAssigning, setIsBulkAssigning] = useState(false);
 
   const [bulkCertDept, setBulkCertDept] = useState<string | null>(null);
@@ -129,6 +131,7 @@ export default function Admin() {
           applicationId: assigningId,
           title: taskName.trim(),
           fileKey: uploadData.filePath,
+          dueDate: taskDueDate || null,
         }),
       }
     );
@@ -142,6 +145,7 @@ export default function Admin() {
       setAssigningId(null);
       setTaskName('');
       setTaskPdf(null);
+      setTaskDueDate('');
       fetchAssignedTasks();
     } else {
       toast({
@@ -216,6 +220,7 @@ export default function Admin() {
               applicationId: student.id,
               title: bulkTaskName.trim(),
               fileKey: uploadData.filePath,
+              dueDate: bulkTaskDueDate || null,
             }),
           }
         )
@@ -233,6 +238,7 @@ export default function Admin() {
 
     setBulkAssignDept(null);
     setBulkTaskPdf(null);
+    setBulkTaskDueDate('');
 
     fetchApplications();
     fetchAssignedTasks();
@@ -438,9 +444,18 @@ export default function Admin() {
                           <TableCell><code className="text-xs font-mono font-bold bg-muted px-2 py-0.5 rounded">{app.internId || '—'}</code></TableCell> 
                           <TableCell>
                             <div className="space-y-1.5">
-                              {assignedTasksList.filter(t => t.application_id === app.id).map(t => (
+                              {assignedTasksList.filter(t => t.application_id === app.id).map(t => {
+                                const isOverdue = t.due_date && new Date(t.due_date) < new Date(new Date().toDateString());
+                                return (
                                 <div key={t.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1">
-                                  <span className="truncate max-w-[120px]" title={t.title}>{t.title}</span>
+                                  <div className="min-w-0">
+                                    <span className="truncate block max-w-[120px]" title={t.title}>{t.title}</span>
+                                    {t.due_date && (
+                                      <span className={`flex items-center gap-1 mt-0.5 ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                        <Calendar className="h-2.5 w-2.5" /> Due {new Date(t.due_date).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0"><MoreVertical className="h-3 w-3" /></Button>
@@ -452,7 +467,8 @@ export default function Admin() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
-                              ))}
+                                );
+                              })}
                               <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssigningId(app.id)}><Plus className="h-3 w-3 mr-1" /> Assign Task</Button>
                             </div>
                           </TableCell> 
@@ -564,10 +580,14 @@ export default function Admin() {
             <div className="space-y-4">
               <Input value={taskName} onChange={(e) => setTaskName(e.target.value)} placeholder="Task No & Name" />
               <Input type="file"accept=".pdf"onChange={(e) =>setTaskPdf(e.target.files?.[0] || null)}/>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Due Date (optional)</label>
+                <Input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+              </div>
             </div>
             <div className="flex gap-2 mt-6">
               <Button onClick={confirmAssignTask} className="flex-1">Assign Task</Button>
-              <Button variant="outline" onClick={() => setAssigningId(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setAssigningId(null); setTaskDueDate(''); }}>Cancel</Button>
             </div>
           </Card>
         </div>
@@ -600,12 +620,16 @@ export default function Admin() {
             <div className="space-y-4">
               <Input value={bulkTaskName} onChange={(e) => setBulkTaskName(e.target.value)} placeholder="Task No & Name" disabled={isBulkAssigning} />
               <Input type="file"accept=".pdf"onChange={(e) =>setBulkTaskPdf(e.target.files?.[0] || null)}/>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Due Date (optional)</label>
+                <Input type="date" value={bulkTaskDueDate} onChange={(e) => setBulkTaskDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} disabled={isBulkAssigning} />
+              </div>
             </div>
             <div className="flex gap-2 mt-6">
               <Button onClick={confirmBulkAssign} disabled={isBulkAssigning || !bulkTaskName.trim() || !bulkTaskPdf} className="flex-1">
                 {isBulkAssigning ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Assigning...</> : 'Assign to All'}
               </Button>
-              <Button variant="outline" onClick={() => setBulkAssignDept(null)} disabled={isBulkAssigning}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setBulkAssignDept(null); setBulkTaskDueDate(''); }} disabled={isBulkAssigning}>Cancel</Button>
             </div>
           </Card>
         </div>

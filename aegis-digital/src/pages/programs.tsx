@@ -11,7 +11,7 @@ export default function Programs() {
     {
       icon: Lock,
       title: 'Cyber Security',
-      duration: '4 weeks',
+      duration: '8 weeks',
       level: 'Intermediate',
       description: 'Master advanced threat detection, penetration testing, and security infrastructure design. Learn to protect systems from evolving cyber threats.',
       skills: ['Ethical Hacking', 'Network Security', 'Incident Response', 'Security Auditing'],
@@ -19,7 +19,7 @@ export default function Programs() {
     {
       icon: Shield,
       title: 'Security Analysis',
-      duration: '4 weeks',
+      duration: '8 weeks',
       level: 'Beginner',
       description: 'Analyze security vulnerabilities, conduct risk assessments, and develop comprehensive security strategies for organizations.',
       skills: ['Risk Assessment', 'Compliance', 'Security Frameworks', 'Threat Analysis'],
@@ -35,7 +35,7 @@ export default function Programs() {
     {
       icon: Globe,
       title: 'Web Development',
-      duration: '4 weeks',
+      duration: '8 weeks',
       level: 'Beginner',
       description: 'Create responsive, accessible web applications using cutting-edge frameworks and industry best practices.',
       skills: ['React', 'TypeScript', 'Responsive Design', 'Web Performance'],
@@ -83,7 +83,7 @@ export default function Programs() {
     {
       icon: FileCode,
       title: 'TypeScript Programming',
-      duration: '4 weeks',
+      duration: '8 weeks',
       level: 'Intermediate',
       description: 'Build type-safe applications with TypeScript, enhancing code quality and developer productivity.',
       skills: ['Type Systems', 'Generics', 'Advanced Types', 'Tooling'],

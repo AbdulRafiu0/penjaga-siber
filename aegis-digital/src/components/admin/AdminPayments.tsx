@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, ExternalLink, CheckCircle, XCircle, FileText, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const API = 'https://aegis-api.rafiuraza474.workers.dev';
@@ -17,6 +17,7 @@ export default function AdminPayments() {
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   const { toast } = useToast();
 
   const load = async () => {
@@ -83,9 +84,26 @@ export default function AdminPayments() {
                   <TableCell className="text-sm">{r.programName}</TableCell>
                   <TableCell>
                     {r.payment_screenshot_key ? (
-                      <a href={screenshotUrl(r.payment_screenshot_key)} target="_blank" rel="noopener noreferrer" className="text-primary text-sm flex items-center gap-1 hover:underline">
-                        <ExternalLink className="h-3 w-3" /> View
-                      </a>
+                      r.payment_screenshot_key.toLowerCase().endsWith('.pdf') ? (
+                        <a href={screenshotUrl(r.payment_screenshot_key)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                          <FileText className="h-4 w-4" /> Open PDF
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewKey(r.payment_screenshot_key)}
+                          className="group flex items-center gap-2"
+                        >
+                          <img
+                            src={screenshotUrl(r.payment_screenshot_key)}
+                            alt="Payment screenshot thumbnail"
+                            className="h-12 w-12 rounded-md object-cover border border-border group-hover:border-primary transition-colors"
+                          />
+                          <span className="text-xs text-primary flex items-center gap-1 group-hover:underline">
+                            <ExternalLink className="h-3 w-3" /> View
+                          </span>
+                        </button>
+                      )
                     ) : <span className="text-xs text-muted-foreground italic">Not uploaded</span>}
                   </TableCell>
                   <TableCell><Badge variant={badgeVariant(r.verificationStatus)}>{r.verificationStatus}</Badge></TableCell>
@@ -105,6 +123,28 @@ export default function AdminPayments() {
           </Table>
         )}
       </CardContent>
+
+      {previewKey && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6"
+          onClick={() => setPreviewKey(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewKey(null)}
+            className="absolute top-5 right-5 text-white/80 hover:text-white"
+            aria-label="Close preview"
+          >
+            <X className="h-7 w-7" />
+          </button>
+          <img
+            src={screenshotUrl(previewKey)}
+            alt="Payment screenshot"
+            className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </Card>
   );
 }
