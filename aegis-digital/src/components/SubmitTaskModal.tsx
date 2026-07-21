@@ -1,81 +1,93 @@
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function SubmitTaskModal({ isOpen, onClose, applicationId, taskId, onSubmitted }: any) {
-  const [repoUrl, setRepoUrl] = useState('');
+interface SubmitTaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  applicationId?: string;
+  taskId: string | null;
+  onSubmitted: () => void;
+}
+
+const ALLOWED_EXT = ['pdf', 'docx', 'zip'];
+
+export default function SubmitTaskModal({ isOpen, onClose, applicationId, taskId, onSubmitted }: SubmitTaskModalProps) {
+  const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async () => {
-    if (!repoUrl.trim()) {
-      toast({ variant: 'destructive', title: "Missing Link", description: "Please provide a submission link." });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // These keys match your index.js validation:
-      // if (!applicationId || !taskId || !repoUrl)
-      const payload = {
-        applicationId: applicationId,
-        taskId: taskId,
-        repoUrl: repoUrl,
-        notes: notes
-      };
-
-      const res = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/submissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-
-      if (res.ok) {
-        toast({ title: "Submitted", description: "Your artifact has been sent for review." });
-        onSubmitted(); 
-      } else {
-        console.error("Backend rejection:", data);
-        throw new Error(data.message || "Server rejected submission");
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] || null;
+    if (selected) {
+      const ext = selected.name.split('.').pop()?.toLowerCase() || '';
+      if (!ALLOWED_EXT.includes(ext)) {
+        toast({ variant: 'destructive', title: 'Unsupported file type', description: 'Only PDF, DOCX, or ZIP files are accepted.' });
+        e.target.value = '';
+        return;
       }
-    } catch (e: any) {
-      console.error("DEBUG ERROR:", e);
-      toast({ 
-        variant: 'destructive', 
-        title: "Submission Failed", 
-        description: e.message || "Check browser console for details." 
+    }
+    setFile(selected);
+  };
+
+  const handleSubmit = async () => {
+    if (!applicationId || !taskId || !file) return;
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('applicationId', applicationId);
+      formData.append('taskId', taskId);
+      formData.append('notes', notes);
+
+      const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/submissions', {
+        method: 'POST',
+        body: formData,
       });
+      const data = await response.json();
+
+      if (data.success) {
+        toast({ title: 'Submitted', description: 'Your task submission has been uploaded for review.' });
+        setFile(null);
+        setNotes('');
+        onSubmitted();
+      } else {
+        toast({ variant: 'destructive', title: 'Submission failed', description: data.message || 'Please try again.' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Upload failed', description: 'Could not reach the server.' });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Submit Project Artifact</DialogTitle></DialogHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Submit Task</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
-          <Input 
-            placeholder="Google Drive / GitHub Link" 
-            value={repoUrl} 
-            onChange={e => setRepoUrl(e.target.value)} 
-          />
-          <Textarea 
-            placeholder="Optional notes for the admin..." 
-            value={notes} 
-            onChange={e => setNotes(e.target.value)} 
-          />
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Deliverable File (PDF, DOCX, or ZIP)</label>
+            <Input type="file" accept=".pdf,.docx,.zip" onChange={handleFileChange} disabled={isSubmitting} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Notes (optional)</label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything the reviewer should know" disabled={isSubmitting} />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleSubmit} disabled={!file || isSubmitting} className="flex-1">
+              {isSubmitting ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading...</> : <><Upload className="h-4 w-4 mr-1.5" /> Submit</>}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+          </div>
         </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Submitting...' : 'Confirm Submission'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

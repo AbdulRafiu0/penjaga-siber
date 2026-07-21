@@ -54,7 +54,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function Register() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
-  const [referenceNumber, setReferenceNumber] = useState('');
+  const [assignedInternId, setAssignedInternId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [quizScore, setQuizScore] = useState<number | null>(null);
@@ -108,11 +108,9 @@ export default function Register() {
     setIsSubmitting(true);
 
     try {
-      // 1. Get existing ID or generate a new one for this new registration
       let userId = localStorage.getItem('aegis_userId') || crypto.randomUUID();
       localStorage.setItem('aegis_userId', userId);
 
-      // 2. Prepare the details object
       const applicationDetails = JSON.stringify({
         fullName: data.fullName,
         phone: data.phone,
@@ -123,8 +121,6 @@ export default function Register() {
         studentEmail: data.email,
         quizScore: quizScore
       });
-      
-      // ... now proceed with your existing fetch() call ...
 
       const response = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/apply', {
         method: 'POST',
@@ -145,8 +141,28 @@ export default function Register() {
         throw new Error(result.message || 'Server rejected application asset submission.');
       }
 
-      const refNum = `AEG-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
-      setReferenceNumber(refNum);
+      // Compute the exact 3-part custom Intern ID matching the worker's format
+      const domainCodes: Record<string, string> = {
+        'cyber security': 'CYB',
+        'security analysis': 'SEC',
+        'software development': 'DEV',
+        'web development': 'WEB',
+        'artificial intelligence': 'ARI',
+        'python programming': 'PYT',
+        'java programming': 'JAV',
+        'c++ programming': 'CPP',
+        'javascript programming': 'JSC',
+        'typescript programming': 'TSC',
+        'ui/ux design': 'UIX',
+      };
+      const track = (data.program || '').trim().toLowerCase();
+      const domainPrefix = domainCodes[track] || 'GEN';
+      const year = new Date().getFullYear();
+      const appId = result.application?.id || userId;
+      const padIndex = appId.substring(0, 4).toUpperCase();
+      const generatedId = `${domainPrefix}-${year}-${padIndex}`;
+
+      setAssignedInternId(generatedId);
       setSubmitted(true);
 
       toast({
@@ -206,7 +222,6 @@ export default function Register() {
 
   const handleStep3Next = () => {
     if (quizPassed) {
-      // Already passed on a prior visit to this step - just continue on.
       setStep(4);
     } else if (currentQuestionIndex < 19) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -231,7 +246,6 @@ export default function Register() {
         setSelectedAnswers({});
         setStep(2);
       } else if (quizPassed) {
-        // Don't strand the user on the last question - go straight back.
         setStep(2);
       } else if (currentQuestionIndex > 0) {
         setCurrentQuestionIndex((prev) => prev - 1);
@@ -268,21 +282,21 @@ export default function Register() {
                 
                 <h2 className="text-4xl font-bold mb-4">Application Submitted!</h2>
                 <p className="text-xl text-muted-foreground mb-8">
-                  Thank you for applying to Penjaga Siber. We've received your application and will review it shortly.
+                  Thank you for applying to Penjaga Siber. We've received your application and assigned your permanent intern token.
                 </p>
                 
                 <div className="bg-muted p-6 rounded-lg mb-8">
-                  <p className="text-sm text-muted-foreground mb-2">Your Reference Number</p>
+                  <p className="text-sm text-muted-foreground mb-2">Your Assigned Intern ID</p>
                   <p className="text-2xl font-mono font-bold text-primary" data-testid="text-reference-number">
-                    {referenceNumber}
+                    {assignedInternId}
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Please save this number for your records
+                    Please save this credential for your candidate records and portal login.
                   </p>
                 </div>
                 
                 <p className="text-muted-foreground mb-8">
-                  You will receive a confirmation email within 24 hours. Our team will contact you within 3-5 business days regarding the next steps.
+                  You will receive a confirmation email within 24 hours. Our team will review your application status shortly.
                 </p>
                 
                 <Button type="button" onClick={() => window.location.href = '/'} data-testid="button-return-home">

@@ -1,16 +1,43 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'wouter';
-import { Shield, BookOpen, Calendar, Download, Bell, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle } from 'lucide-react';
+import { generateOfferLetter } from "@/lib/pdf/offerLetter";
+import { generateCertificate } from "@/lib/pdf/certificate";
+import { generateRecommendation } from "@/lib/pdf/recommendation";
+import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
 
 interface DBApplication {
-  id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number;
+  id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
+}
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function deriveOfferFields(app: DBApplication) {
+  let parsed: any = {};
+  try { parsed = JSON.parse(app.details || '{}'); } catch { parsed = {}; }
+
+  const start = app.createdAt ? new Date(app.createdAt) : new Date();
+  const durationMonths = Number(parsed.durationMonths) || 3;
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + durationMonths);
+
+  return {
+    department: parsed.department || app.programName,
+    startDate: formatDate(start),
+    endDate: formatDate(end),
+    duration: parsed.duration || `${durationMonths} Months`,
+    mode: parsed.mode || 'Remote / Online',
+    internshipMode: parsed.internshipMode || 'Unpaid Internship',
+    supervisor: parsed.supervisor || 'Program Mentor',
+  };
 }
 
 export default function Dashboard() {
@@ -24,6 +51,15 @@ export default function Dashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
   const [assignedTasks, setAssignedTasks] = useState<any[]>([]);
+  const [isGeneratingOffer, setIsGeneratingOffer] = useState(false);
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+  const [isGeneratingLOR, setIsGeneratingLOR] = useState(false);
+
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [progress, setProgress] = useState({ assigned: 0, submitted: 0, approved: 0, rejected: 0, completionPercent: 0 });
+  const [isRequestingPayment, setIsRequestingPayment] = useState(false);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [isUploadingPayment, setIsUploadingPayment] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) setLocation('/login');
@@ -39,10 +75,6 @@ export default function Dashboard() {
         return;
       }
 
-      // Fetch only this student's own application(s) by ID - scoped server-side,
-      // rather than pulling the full applications list (every applicant's
-      // name, email, phone, and quiz score) down to the browser and filtering
-      // by name client-side.
       const response = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/student/${userId}`);
       const data = await response.json();
       if (data.success) {
@@ -50,6 +82,8 @@ export default function Dashboard() {
         if (data.applications.length > 0) {
           fetchMySubmissions(data.applications[0].id);
           fetchAssignedTasks(data.applications[0].id);
+          fetchProgress(data.applications[0].id);
+          fetchAnnouncements();
         }
       }
     } catch (error: any) {
@@ -73,15 +107,29 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  if (!isLoggedIn) return null;
+  const fetchProgress = async (appId: string) => {
+    try {
+      const res = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/progress/${appId}`);
+      const data = await res.json();
+      if (data.success) setProgress(data.progress);
+    } catch (e) { console.error(e); }
+  };
 
-  const primaryApp = applications[0];
-  const applicationStatus = primaryApp?.status?.toLowerCase();
-  const isApproved = applicationStatus === 'approved';
-  const isRejected = applicationStatus === 'rejected';
-  const hasNoApplication = !isLoadingApps && !primaryApp;
-  const displayInternId = primaryApp?.internId || 'Generating...';
-  const isCertificateUnlocked = primaryApp?.certificateIssued === true || Number(primaryApp?.certificateIssued) === 1;
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await fetch('https://aegis-api.rafiuraza474.workers.dev/api/announcements');
+      const data = await res.json();
+      if (data.success) setAnnouncements(data.announcements);
+    } catch (e) { console.error(e); }
+  };
+
+  const primaryApp = applications.length > 0 ? applications[0] : null;
+  const hasNoApplication = !primaryApp;
+
+  const isApproved = primaryApp?.status === "approved";
+  const isRejected = primaryApp?.status === "rejected";
+  const displayInternId = primaryApp?.internId || "Pending";
+  const isCertificateUnlocked = Boolean(primaryApp?.certificateIssued);
 
   const resources = [
     { title: 'Security Best Practices Guide', type: 'PDF' },
@@ -89,6 +137,95 @@ export default function Dashboard() {
     { title: 'Project Requirements Document', type: 'Doc' },
     { title: 'Mentor Office Hours Schedule', type: 'Calendar' },
   ];
+
+  const handleDownloadOfferLetter = async () => {
+    if (!primaryApp) return;
+    try {
+      setIsGeneratingOffer(true);
+      await generateOfferLetter({
+        application: primaryApp,
+        internName: internName || "Student",
+        offerFields: deriveOfferFields(primaryApp),
+      });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'PDF Error', description: 'Could not generate offer letter.' });
+    } finally {
+      setIsGeneratingOffer(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!primaryApp) return;
+    try {
+      setIsGeneratingCert(true);
+      await generateCertificate({
+        application: primaryApp,
+        internName: internName || "Student",
+        offerFields: deriveOfferFields(primaryApp),
+      });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'PDF Error', description: 'Could not generate certificate.' });
+    } finally {
+      setIsGeneratingCert(false);
+    }
+  };
+
+  const handleDownloadLetterOfRecommendation = async () => {
+    if (!primaryApp) return;
+    try {
+      setIsGeneratingLOR(true);
+      await generateRecommendation({
+        application: primaryApp,
+        internName: internName || "Student",
+        offerFields: deriveOfferFields(primaryApp),
+      });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'PDF Error', description: 'Could not generate recommendation letter.' });
+    } finally {
+      setIsGeneratingLOR(false);
+    }
+  };
+
+  const handleRequestPayment = async () => {
+    if (!primaryApp) return;
+    setIsRequestingPayment(true);
+    try {
+      const res = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/${primaryApp.id}/request-payment`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: data.alreadyRequested ? 'Already requested' : 'Payment requested', description: data.message });
+        syncStudentPipeline();
+      } else {
+        toast({ variant: 'destructive', title: 'Not eligible yet', description: data.message });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error' });
+    } finally {
+      setIsRequestingPayment(false);
+    }
+  };
+
+  const handleUploadPaymentScreenshot = async () => {
+    if (!primaryApp || !paymentFile) return;
+    setIsUploadingPayment(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', paymentFile);
+      const res = await fetch(`https://aegis-api.rafiuraza474.workers.dev/api/applications/${primaryApp.id}/payment-screenshot`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Screenshot uploaded', description: 'Awaiting admin verification.' });
+        setPaymentFile(null);
+        syncStudentPipeline();
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: data.message });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error' });
+    } finally {
+      setIsUploadingPayment(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,9 +279,17 @@ export default function Dashboard() {
           ) : (
             <>
               <div className="grid grid-cols-3 gap-6 mb-8">
-                <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Assigned Tasks</p><p className="text-3xl font-bold">{assignedTasks.length}</p></CardContent></Card>
-                <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Completed</p><p className="text-3xl font-bold text-primary">{mySubmissions.filter(s => s.status === 'approved').length}</p></CardContent></Card>
-                <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Pending</p><p className="text-3xl font-bold text-amber-500">{assignedTasks.length - mySubmissions.filter(s => s.status === 'approved').length}</p></CardContent></Card>
+                <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Assigned</p><p className="text-3xl font-bold">{progress.assigned}</p></CardContent></Card>
+                <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Approved</p><p className="text-3xl font-bold text-primary">{progress.approved}</p></CardContent></Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-sm text-muted-foreground">Completion</p>
+                    <p className="text-3xl font-bold">{progress.completionPercent}%</p>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${progress.completionPercent}%` }} />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -160,7 +305,7 @@ export default function Dashboard() {
                             {hasSubmitted ? <Badge variant="secondary" className="text-[10px]">Submitted</Badge> : <span className="text-[10px] bg-muted px-2 py-1 rounded">Expand</span>}
                           </summary>
                           <div className="mt-3 pt-3 border-t space-y-3">
-                            <a href={task.drive_link} target="_blank" rel="noopener noreferrer" className="text-primary text-sm flex items-center gap-1 hover:underline"><ExternalLink className="h-4 w-4" /> Open Task Resources</a>
+                            <a href={`https://aegis-api.rafiuraza474.workers.dev/api/files/${encodeURIComponent(task.file_key)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-sm flex items-center gap-1 hover:underline"><ExternalLink className="h-4 w-4" /> Open Task Resources</a>
                             <Button 
                               size="sm" 
                               className="w-full" 
@@ -179,14 +324,45 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-2 border border-primary/20 bg-card shadow-md overflow-hidden relative group"><div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors" /><CardHeader><CardTitle className="text-xl flex items-center gap-2"><Award className="h-5 w-5 text-primary" /> Verification & Placement Package</CardTitle></CardHeader><CardContent className="space-y-4"><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><FileText className="h-4 w-4 text-primary" /> Appointment & Offer Letter</p></div><Button size="sm" className="w-full sm:w-auto glow-blue" onClick={() => window.print()}><Download className="mr-2 h-4 w-4" /> Print Document</Button></div><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> Corporate Network Clearance Token</p><p className="text-xs text-muted-foreground">ID: <code className="bg-background px-1.5 py-0.5 rounded text-primary border font-bold font-mono text-[11px]">{displayInternId}</code></p></div><Button size="sm" variant="outline" className="w-full sm:w-auto text-xs" onClick={() => { navigator.clipboard.writeText(displayInternId); toast({ title: "Copied Token", description: "ID token copied." }); }}>Copy ID Token</Button></div></CardContent></Card>
-                <Card className={`border shadow-sm flex flex-col justify-between transition-all duration-300 ${isCertificateUnlocked ? 'border-primary bg-card glow-blue' : 'border-border bg-card'}`}><CardHeader><CardTitle className="text-base font-bold flex items-center gap-1.5"><CheckCircle className={`h-4 w-4 ${isCertificateUnlocked ? 'text-primary' : 'text-muted-foreground'}`} /> Program Verification</CardTitle></CardHeader><CardContent className="pb-6 flex-1 flex flex-col justify-between">{isCertificateUnlocked ? <><div className="text-center py-4 border border-primary/20 rounded-xl bg-primary/5"><Award className="h-10 w-10 mx-auto text-primary animate-bounce mb-2" /><p className="text-xs font-bold text-foreground">Certificate Unlocked!</p></div><Button className="w-full mt-4 text-xs h-9 glow-blue" onClick={() => window.print()}><Download className="mr-1.5 h-3.5 w-3.5" /> Download Certificate</Button></> : <><div className="text-center py-4 border border-dashed rounded-xl bg-muted/20"><Lock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" /><p className="text-xs font-semibold text-muted-foreground">Locked Pending Track Completion</p></div><Button disabled className="w-full mt-4 text-xs h-9">Certificate Unavailable</Button></>}</CardContent></Card>
+                <Card className="md:col-span-2 border border-primary/20 bg-card shadow-md overflow-hidden relative group"><div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors" /><CardHeader><CardTitle className="text-xl flex items-center gap-2"><Award className="h-5 w-5 text-primary" /> Verification & Placement Package</CardTitle></CardHeader><CardContent className="space-y-4"><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><FileText className="h-4 w-4 text-primary" /> Appointment & Offer Letter</p></div><Button size="sm" className="w-full sm:w-auto glow-blue" disabled={isGeneratingOffer} onClick={handleDownloadOfferLetter}>{isGeneratingOffer ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : <><Download className="mr-2 h-4 w-4" /> Download Offer Letter</>}</Button></div><div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="space-y-1"><p className="font-semibold text-sm flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> Corporate Network Clearance Token</p><p className="text-xs text-muted-foreground">ID: <code className="bg-background px-1.5 py-0.5 rounded text-primary border font-bold font-mono text-[11px]">{displayInternId}</code></p></div><Button size="sm" variant="outline" className="w-full sm:w-auto text-xs" onClick={() => { navigator.clipboard.writeText(displayInternId); toast({ title: "Copied Token", description: "ID token copied." }); }}>Copy ID Token</Button></div></CardContent></Card>
+                <Card className={`border shadow-sm flex flex-col justify-between transition-all duration-300 ${isCertificateUnlocked ? 'border-primary bg-card glow-blue' : 'border-border bg-card'}`}><CardHeader><CardTitle className="text-base font-bold flex items-center gap-1.5"><CheckCircle className={`h-4 w-4 ${isCertificateUnlocked ? 'text-primary' : 'text-muted-foreground'}`} /> Program Verification</CardTitle></CardHeader><CardContent className="pb-6 flex-1 flex flex-col justify-between">{isCertificateUnlocked ? <><div className="text-center py-4 border border-primary/20 rounded-xl bg-primary/5"><Award className="h-10 w-10 mx-auto text-primary animate-bounce mb-2" /><p className="text-xs font-bold text-foreground">Certificate Unlocked!</p></div><Button className="w-full mt-4 text-xs h-9 glow-blue" disabled={isGeneratingCert} onClick={handleDownloadCertificate}>{isGeneratingCert ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Generating...</> : <><Download className="mr-1.5 h-3.5 w-3.5" /> Download Certificate</>}</Button><Button variant="outline" className="w-full mt-2 text-xs h-9" disabled={isGeneratingLOR} onClick={handleDownloadLetterOfRecommendation}>{isGeneratingLOR ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Generating...</> : <><FileText className="mr-1.5 h-3.5 w-3.5" /> Download Recommendation Letter</>}</Button></> : <><div className="text-center py-4 border border-dashed rounded-xl bg-muted/20"><Lock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" /><p className="text-xs font-semibold text-muted-foreground">Locked Pending Track Completion</p></div><Button disabled className="w-full mt-4 text-xs h-9">Certificate Unavailable</Button></>}</CardContent></Card>
               </div>
+
+              {progress.assigned > 0 && progress.approved === progress.assigned && !isCertificateUnlocked && (
+                <Card className="mt-6 border-amber-500/20 bg-amber-500/5">
+                  <CardHeader><CardTitle className="text-base">Certificate Payment</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button size="sm" disabled={isRequestingPayment} onClick={handleRequestPayment}>
+                      {isRequestingPayment ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null} Request Certificate Payment
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf" onChange={e => setPaymentFile(e.target.files?.[0] || null)} />
+                      <Button size="sm" variant="outline" disabled={!paymentFile || isUploadingPayment} onClick={handleUploadPaymentScreenshot}>
+                        {isUploadingPayment ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null} Upload Screenshot
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {announcements.length > 0 && (
+                <Card className="mt-6">
+                  <CardHeader><CardTitle className="text-base">Announcements</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {announcements.map((a: any) => (
+                      <div key={a.id} className="p-3 border rounded-lg">
+                        <p className="font-semibold text-sm">{a.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{a.body}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </motion.div>
       </div>
-      <SubmitTaskModal isOpen={isSubmitModalOpen} onClose={() => setIsSubmitModalOpen(false)} applicationId={primaryApp?.id} taskId={selectedTaskId} onSubmitted={() => { setIsSubmitModalOpen(false); if(primaryApp) { fetchMySubmissions(primaryApp.id); } }} />
+      <SubmitTaskModal isOpen={isSubmitModalOpen} onClose={() => setIsSubmitModalOpen(false)} applicationId={primaryApp?.id} taskId={selectedTaskId} onSubmitted={() => { setIsSubmitModalOpen(false); if(primaryApp) { fetchMySubmissions(primaryApp.id); fetchProgress(primaryApp.id); } }} />
     </div>
   );
 }
