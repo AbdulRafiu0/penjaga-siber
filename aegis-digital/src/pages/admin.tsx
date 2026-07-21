@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Users, FileText, Clock, Award, Trash2, Edit3, X, Save, CheckCircle, XCircle, Mail, Loader2, Lock, FileCheck, User, Plus } from 'lucide-react';
+import { Shield, Users, FileText, Clock, Award, Trash2, Edit3, X, Save, CheckCircle, XCircle, Mail, Loader2, Lock, FileCheck, User, Plus, MoreVertical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import AdminPipeline from '@/components/admin/AdminPipeline';
 import AdminPayments from '@/components/admin/AdminPayments';
@@ -440,7 +441,16 @@ export default function Admin() {
                               {assignedTasksList.filter(t => t.application_id === app.id).map(t => (
                                 <div key={t.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1">
                                   <span className="truncate max-w-[120px]" title={t.title}>{t.title}</span>
-                                  <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive shrink-0" onClick={() => handleDeleteTask(t.id)}><Trash2 className="h-3 w-3" /></Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0"><MoreVertical className="h-3 w-3" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteTask(t.id)}>
+                                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Task
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               ))}
                               <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAssigningId(app.id)}><Plus className="h-3 w-3 mr-1" /> Assign Task</Button>
