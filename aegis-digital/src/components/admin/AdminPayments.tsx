@@ -40,7 +40,16 @@ export default function AdminPayments() {
       const res = await adminFetch(`/api/admin/payments/${id}/${action}`, { method: 'PUT' });
       const data = await res.json();
       if (data.success) {
-        toast({ title: action === 'verify' ? 'Payment Verified' : 'Payment Rejected' });
+        if (action === 'verify') {
+          toast({
+            title: 'Payment Verified',
+            description: data.certificateIssued && !data.certificateAlreadyIssued
+              ? 'Certificate issued automatically.'
+              : undefined,
+          });
+        } else {
+          toast({ title: 'Payment Rejected' });
+        }
         load();
       } else {
         toast({ variant: 'destructive', title: 'Action failed', description: data.message });
@@ -106,16 +115,44 @@ export default function AdminPayments() {
                     ) : <span className="text-xs text-muted-foreground italic">Not uploaded</span>}
                   </TableCell>
                   <TableCell><Badge variant={badgeVariant(r.verificationStatus)}>{r.verificationStatus}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1.5">
-                      <Button size="sm" variant="outline" className="h-8 text-emerald-600" disabled={actingId === r.id || !r.payment_screenshot_key} onClick={() => act(r.id, 'verify')}>
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-destructive" disabled={actingId === r.id || !r.payment_screenshot_key} onClick={() => act(r.id, 'reject')}>
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                      </Button>
-                    </div>
-                  </TableCell>
+                     <TableCell className="text-right">
+  {r.verificationStatus === 'Pending' ? (
+    <div className="flex justify-end gap-1.5">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 text-emerald-600"
+        disabled={actingId === r.id || !r.payment_screenshot_key}
+        onClick={() => act(r.id, 'verify')}
+      >
+        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+        Approve
+      </Button>
+
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 text-destructive"
+        disabled={actingId === r.id || !r.payment_screenshot_key}
+        onClick={() => act(r.id, 'reject')}
+      >
+        <XCircle className="h-3.5 w-3.5 mr-1" />
+        Reject
+      </Button>
+    </div>
+  ) : r.verificationStatus === 'Verified' ? (
+    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+      <CheckCircle className="h-3.5 w-3.5 mr-1" />
+      Verified
+    </Badge>
+  ) : (
+    <Badge variant="destructive">
+      <XCircle className="h-3.5 w-3.5 mr-1" />
+      Rejected
+    </Badge>
+  )}
+</TableCell>
+                    
                 </TableRow>
               ))}
             </TableBody>
