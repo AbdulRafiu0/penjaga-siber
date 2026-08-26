@@ -655,7 +655,7 @@ export default function Dashboard() {
                 <Card className="rounded-2xl border-none shadow-sm bg-card hover:shadow-md transition-shadow">
                   <CardContent className="p-5 sm:p-6">
                     <div className="flex justify-between items-start mb-2">
-                      <p className="text-sm font-medium text-muted-foreground">Approved Validations</p>
+                      <p className="text-sm font-medium text-muted-foreground">Approved Tasks</p>
                       <CheckCircle className="h-4 w-4 text-emerald-500/70" />
                     </div>
                     <p className="text-3xl sm:text-4xl font-bold tracking-tight text-primary">{progress.approved}</p>
@@ -733,7 +733,7 @@ export default function Dashboard() {
                 
                 <Card className="rounded-2xl shadow-sm">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg"><Megaphone className="h-5 w-5 text-primary" /> Security Bulletins</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-lg"><Megaphone className="h-5 w-5 text-primary" /> Announcements</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {announcements.length === 0 ? (
@@ -761,7 +761,7 @@ export default function Dashboard() {
                   <CardContent className="space-y-4">
                     <div className="p-4 sm:p-5 rounded-xl bg-muted/30 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="space-y-1">
-                        <p className="font-semibold text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Digital Appointment Letter</p>
+                        <p className="font-semibold text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Digital Offer Letter</p>
                         <p className="text-xs text-muted-foreground">Official onboarding documentation</p>
                       </div>
                       <Button size="sm" variant="outline" className="w-full sm:w-auto rounded-lg hover:bg-primary hover:text-primary-foreground transition-all" disabled={isGeneratingOffer} onClick={handleDownloadOfferLetter}>
@@ -786,7 +786,7 @@ export default function Dashboard() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-bold flex items-center gap-2 tracking-tight">
                       <CheckCircle className={`h-5 w-5 ${isCertificateUnlocked ? 'text-primary drop-shadow-sm' : 'text-muted-foreground/50'}`} /> 
-                      Credential Status
+                      Certificate Status
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pb-6 flex-1 flex flex-col justify-end">
@@ -794,7 +794,7 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         <div className="text-center py-6 mb-4">
                           <Award className="h-12 w-12 mx-auto text-primary mb-3 drop-shadow-md" />
-                          <p className="text-sm font-bold text-foreground tracking-tight">Credentials Unlocked</p>
+                          <p className="text-sm font-bold text-foreground tracking-tight">Certificate Unlocked</p>
                           <p className="text-xs text-muted-foreground mt-1">Verified on edge network</p>
                         </div>
                         <Button className="w-full rounded-xl glow-blue font-medium" disabled={isGeneratingCert} onClick={handleDownloadCertificate}>
