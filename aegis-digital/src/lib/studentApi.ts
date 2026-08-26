@@ -26,6 +26,14 @@ export function getStudentToken() {
   return localStorage.getItem('aegis_token') || sessionStorage.getItem('aegis_token');
 }
 
+export function setStudentToken(token: string, remember: boolean = true) {
+  if (remember) {
+    localStorage.setItem('aegis_token', token);
+  } else {
+    sessionStorage.setItem('aegis_token', token);
+  }
+}
+
 export function clearStudentSession() {
   localStorage.removeItem('aegis_token');
   localStorage.removeItem('aegis_userId');
