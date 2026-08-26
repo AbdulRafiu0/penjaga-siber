@@ -19,6 +19,14 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      // This tells your local server to proxy /api requests to your backend
+      '/api': {
+        target: 'https://aegis-api.rafiuraza474.workers.dev',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   preview: {
     port: 4173,
