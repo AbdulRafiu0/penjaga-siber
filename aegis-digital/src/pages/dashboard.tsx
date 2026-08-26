@@ -181,7 +181,7 @@ export default function Dashboard() {
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/announcements`);
+      const res = await authFetch(`/api/announcements`);
       const data = await res.json();
       if (data.success) setAnnouncements(data.announcements);
     } catch (e) { console.error(e); }
@@ -214,7 +214,7 @@ export default function Dashboard() {
     setIsEnrolling(true);
     try {
       const userId = localStorage.getItem('aegis_userId');
-      const response = await fetch(`${API_BASE}/api/apply`, {
+      const response = await authFetch(`/api/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -256,7 +256,7 @@ export default function Dashboard() {
         } catch(e) {}
       }
 
-      const response = await fetch(`${API_BASE}/api/contact`, {
+      const response = await authFetch(`/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
