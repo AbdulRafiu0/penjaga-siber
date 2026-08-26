@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
-import { authFetch, safeJson, getStudentToken, API_BASE } from '@/lib/studentApi';
+import { authFetch, safeJson, getStudentToken } from '@/lib/studentApi';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
@@ -194,8 +194,8 @@ export default function Dashboard() {
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Clean relative path routed directly via Cloudflare Worker route mapping
-      const url = `${API_BASE}/api/files/${safePath}?token=${token}`;
+      // Clean relative path handled by Cloudflare Worker route mapping on your domain
+      const url = `/api/files/${safePath}?token=${token}`;
       
       const link = document.createElement('a');
       link.href = url;
