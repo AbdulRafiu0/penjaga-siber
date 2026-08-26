@@ -57,6 +57,9 @@ export default function Admin() {
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedSubDepartment, setSelectedSubDepartment] = useState('All');
 
+  // Admin Reply State
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+
   const departments = [
     'All',
     'Cyber Security',
@@ -166,12 +169,6 @@ export default function Admin() {
       return;
     }
 
-    // NOTE: this used to call window.prompt() directly. Browsers silently
-    // suppress ALL future alert/confirm/prompt calls on a tab once someone
-    // has dismissed one with "Prevent this page from creating additional
-    // dialogs" checked - the click then does nothing at all: no popup, no
-    // toast, no console error. A controlled modal avoids native dialogs
-    // entirely so it can't be blocked that way.
     setBulkTaskName('');
     setBulkAssignDept(department);
   };
@@ -299,6 +296,27 @@ export default function Admin() {
         toast({ title: "Message Deleted", description: "The message has been purged." });
       } else { toast({ variant: 'destructive', title: "Error", description: "Failed to delete message." }); }
     } catch (e) { toast({ variant: 'destructive', title: "Network error." }); }
+  };
+
+  const handleSendReply = async (msgId: string) => {
+    const text = replyText[msgId];
+    if (!text) return;
+    try {
+      const response = await adminFetch(`/api/admin/messages/${msgId}/reply`, {
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ reply: text })
+      });
+      if (response.ok) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reply: text } : m));
+        toast({ title: 'Reply Sent', description: 'Student will see this in their dashboard.' });
+        setReplyText(prev => ({ ...prev, [msgId]: '' }));
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to send reply.' });
+      }
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Network error', description: 'Could not send reply.' });
+    }
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -576,18 +594,36 @@ export default function Admin() {
                 <p className="text-muted-foreground italic">No messages received.</p>
               ) : (
                 messages.map((msg: any) => (
-                  <div key={msg.id} className="p-4 border rounded-lg bg-card flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold text-lg">{msg.subject}</p>
-                          <p className="text-sm text-primary font-medium">{msg.name} &lt;{msg.email}&gt;</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground whitespace-nowrap ml-4">{new Date(msg.created_at).toLocaleString()}</p>
+                  <div key={msg.id} className="p-5 border rounded-xl bg-card flex flex-col gap-4 shadow-sm">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 pr-4">
+                        <p className="font-bold text-lg text-foreground">{msg.subject}</p>
+                        <p className="text-sm text-primary font-medium mb-3">{msg.name} &lt;{msg.email}&gt;</p>
+                        <div className="text-sm text-muted-foreground bg-muted/40 p-4 rounded-lg border">{msg.message}</div>
                       </div>
-                      <p className="mt-3 text-sm text-foreground">{msg.message}</p>
+                      <div className="flex flex-col items-end gap-3 shrink-0">
+                        <p className="text-xs text-muted-foreground font-mono">{new Date(msg.created_at).toLocaleString()}</p>
+                        <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMessage(msg.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10 shrink-0" onClick={() => handleDeleteMessage(msg.id)}><Trash2 className="h-4 w-4" /></Button>
+                    
+                    <div className="border-t pt-4 mt-2">
+                      {msg.reply ? (
+                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                          <p className="text-xs font-bold text-primary mb-1 uppercase tracking-wider">Admin Reply Sent:</p>
+                          <p className="text-sm text-foreground">{msg.reply}</p>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <Input 
+                            placeholder="Type your official reply to the student..." 
+                            value={replyText[msg.id] || ''} 
+                            onChange={(e) => setReplyText(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                          />
+                          <Button onClick={() => handleSendReply(msg.id)} className="shrink-0" disabled={!replyText[msg.id]?.trim()}>Send Reply</Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

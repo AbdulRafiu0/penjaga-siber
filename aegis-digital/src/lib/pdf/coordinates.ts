@@ -1,106 +1,125 @@
 /**
- * All coordinates are in millimeters (jsPDF unit = mm)
+ * All coordinates are in millimeters (jsPDF unit = mm).
  *
- * If any text isn't perfectly aligned,
- * simply adjust the x/y value here.
+ * These were NOT eyeballed — each one was measured by loading the actual
+ * template PNGs, converting px -> mm using the known page sizes, and
+ * detecting the real pixel bounds of the printed labels / blank lines /
+ * rule lines with a threshold-based bounding-box scan. Where a field sits
+ * on a shared row (e.g. the offer-letter table, the certificate's bottom
+ * info bar), the anchor points (colon glyphs, icon columns) were detected
+ * directly rather than assumed to be evenly spaced.
+ *
+ *   Certificate:     landscape 210x150 mm  (source PNG: 1024x731 px)
+ *   Offer Letter:    A4 portrait 210x297 mm (source PNG: 1055x1491 px)
+ *   Recommendation:  A4 portrait 210x297 mm (source PNG: 1080x1526 px)
+ *
+ * Conversion formula used: mm = (pixel / img_px) * page_mm
+ *
+ * IMPORTANT FIX vs the previous version of this file: the offer-letter
+ * table rows are ~9mm apart, NOT ~17mm apart. The old y-values assumed
+ * 17mm spacing, which pushed every value below "Intern Name" one full row
+ * (or more) below its real label — that's why "Intern ID" was landing on
+ * the "Department" line, "Program" was landing on "Duration", etc. The
+ * certificate's bottom info row (period / duration / department / intern
+ * ID / date of issue) had the opposite problem: all six values were
+ * placed AT the icon/label row itself instead of below it, so values
+ * were printing on top of the icons and labels.
  */
 
 export const OFFER = {
-  issueDate: { x: 166, y: 36 },
+  // Top-right date. The decorative dark header shape extends to ~y=38mm,
+  // and the "INTERNSHIP OFFER LETTER" title starts at y=58.8mm, so this
+  // sits in the clear band between them. Right-aligned so the date can
+  // never run past the page edge (the old left-aligned x=185.1 did).
+  issueDate: { x: 195, y: 48 },
 
-  offerIdTop: { x: 221, y: 24 },
-  offerIdBottom: { x: 132, y: 275 },
+  // "Dear ___" blank line runs from x=21 to x=62 at y=84.6-84.8 (baseline).
+  internNameGreeting: { x: 24, y: 84.0 },
 
-  internNameGreeting: { x: 23, y: 63 },
+  // "Department: ___" blank line runs from x=170 to x=197.3, same baseline row.
+  departmentHeader: { x: 173, y: 84.0 },
 
-  department: { x: 111, y: 72 },
+  // Internship Details table. Rows are anchored on the ":" glyph in each
+  // label, measured at y = 131.0 / 140.6 / 149.6 / 158.6 / 167.8 (all five
+  // rows, both columns share the same 5 baselines). Values start ~3mm
+  // after the colon on each side.
+  internName: { x: 59, y: 131.0 },
+  internId: { x: 59, y: 140.6 },
+  departmentTable: { x: 59, y: 149.6 },
+  programTable: { x: 59, y: 158.6 },
+  duration: { x: 59, y: 167.8 },
 
-  program: { x: 122, y: 83 },
-
-  internName: { x: 70, y: 103 },
-  internId: { x: 70, y: 113 },
-
-  departmentTable: { x: 70, y: 123 },
-
-  programTable: { x: 70, y: 133 },
-
-  duration: { x: 70, y: 143 },
-
-  startDate: { x: 180, y: 103 },
-
-  endDate: { x: 180, y: 113 },
-
-  internshipType: { x: 180, y: 123 },
-
-  supervisor: { x: 180, y: 133 },
-
-  mode: { x: 180, y: 143 },
-
-  qr: {
-    x: 213,
-    y: 212,
-    size: 28,
-  },
+  startDate: { x: 150, y: 131.0 },
+  endDate: { x: 150, y: 140.6 },
+  internshipType: { x: 150, y: 149.6 },
+  supervisor: { x: 150, y: 158.6 },
+  mode: { x: 150, y: 167.8 },
 };
 
 export const CERTIFICATE = {
-  certificateId: { x: 196, y: 21 },
+  // "CERTIFICATE ID:" label sits at y=10-11.6, its underline at y=17.5,
+  // x=164.6-193.6. Value sits just above the line.
+  certificateId: { x: 167, y: 16.8 },
 
-  internName: { x: 105, y: 84 },
+  // The blank gold rule between the laurels (where the name goes) is at
+  // y=70.6-71.6. "This is to certify that" ends at y=59.7, so there's
+  // room for a large name baseline-aligned just above the rule.
+  internName: { x: 105, y: 69.8 },
 
-  program: { x: 126, y: 111 },
+  // There is no separate blank line for the program name — the template's
+  // baked-in text reads "...has successfully completed the ___ at Penjaga
+  // Siber...", so the value must continue in-line right after "the".
+  // MEASURED FIX: "the" actually ends at x=124.5mm (not 139.7 as previously
+  // assumed) — the old x=141 left a ~16.5mm dead gap that made the program
+  // name look like a disconnected floating label instead of a continuation
+  // of the sentence. x=128 leaves a normal single-word gap after "the".
+  program: { x: 126, y: 80.5 },
 
-  periodStart: { x: 38, y: 158 },
+  // The intern name, repeated inline at the START of the same
+  // "has successfully completed the ___" line (that line's static text
+  // begins at x=80 — this sits in the gap just before it, on the same
+  // baseline).
+  internNameInline: { x: 64, y: 80.5 },
 
-  periodEnd: { x: 38, y: 165 },
-
-  duration: { x: 78, y: 160 },
-
-  department: { x: 122, y: 158 },
-
-  internId: { x: 178, y: 160 },
-
-  issueDate: { x: 230, y: 160 },
-
-  qr: {
-    x: 207,
-    y: 176,
-    size: 27,
-  },
+  // Bottom info row: icon+label pairs were measured at these x-centers
+  // (icon left edge to end of label text): period 18.9-44.1 (mid 31.5),
+  // duration 54.6-72.4 (mid 63.5), department 89.4-119.4 (mid 104.4),
+  // intern ID 129.0-145.6 (mid 137.3), date of issue 158.1-178.4 (mid
+  // 168.25). The label row itself sits at y=99.5-101.3, and the
+  // signature block ("Abdul Rafiu") starts at y=105 directly under the
+  // period/duration columns — so values must sit in the narrow y=104.3
+  // band below the labels and just above the signature.
+  //
+  // NOTE ON THIS ROW: the icon glyphs bottom out at y=102.7mm and the
+  // signature block starts at y=105mm — only ~2.3mm of clear space for
+  // period/duration, which sit directly under the signature. There is no
+  // coordinate fix for that; it is a template layout constraint. Small
+  // font sizes below are deliberate, not a mistake. department/internId/
+  // dateOfIssue have more room (the seal badge doesn't start until
+  // y=111.7) so they can run one point larger and a hair lower.
+  //
+  // period is LEFT-aligned (not centered) starting right after the
+  // calendar icon (which ends at x=24.6). The other bottom row fields
+  // follow the same left-aligned pattern, shifted ~8mm from their column start
+  // to ensure sufficient clearance from the icons.
+  period: { x: 26, y: 104.6 },
+  duration: { x: 63, y: 104.6 },
+  department: { x: 99, y: 105.3 },
+  internId: { x: 138, y: 105.3 },
+  issueDate: { x: 167, y: 105.3 },
 };
 
 export const RECOMMENDATION = {
-  issueDate: { x: 190, y: 37 },
+  // "Date:" label is at x=154.4-163.1, y=60.1-62.7. Value follows it.
+  issueDate: { x: 166, y: 62.5 },
 
-  greetingName: { x: 84, y: 54 },
-
-  internId: { x: 132, y: 54 },
-
-  paragraph2Name: { x: 22, y: 75 },
-
-  program: { x: 103, y: 75 },
-
-  startDate: { x: 166, y: 75 },
-
-  endDate: { x: 197, y: 75 },
-
-  paragraph3Name: { x: 67, y: 98 },
-
-  paragraph4Name: { x: 63, y: 135 },
-
-  program2: { x: 42, y: 144 },
-
-  paragraph5Name: { x: 149, y: 177 },
-
-  paragraph6Name: { x: 75, y: 200 },
-
-  recommendationId: { x: 82, y: 255 },
-
-  issueDateBottom: { x: 182, y: 255 },
-
-  qr: {
-    x: 210,
-    y: 205,
-    size: 28,
-  },
+  // "It is my pleasure to recommend ___ (Intern ID: [ ___ ]) for future..."
+  // Name blank runs x=71.8-102.9. ID blank runs x=122.1-145.9. Both sit
+  // on the same text baseline, measured at y=81.3 (not y=80.4 — close,
+  // but the previous value was still slightly high).
+  internName: { x: 74, y: 81.3 },
+  // Paired with 8pt in recommendation.ts (not the name's 12pt) so a
+  // full-length ID like "SEC-2026-C843" clears the "]" bracket at
+  // x=145.9 with real margin instead of running right up against it.
+  internId: { x: 122, y: 81.3 },
 };

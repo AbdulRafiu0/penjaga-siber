@@ -1,6 +1,4 @@
 import jsPDF from "jspdf";
-import QRCode from "qrcode";
-
 import type { jsPDFOptions } from "jspdf";
 
 export interface TemplateOptions {
@@ -15,26 +13,16 @@ const DEFAULT_OPTIONS: TemplateOptions = {
   imageType: "PNG",
 };
 
-/**
- * Loads an image from /public and converts it into a DataURL
- */
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-
     image.crossOrigin = "anonymous";
-
     image.onload = () => resolve(image);
-
     image.onerror = reject;
-
     image.src = src;
   });
 }
 
-/**
- * Creates a PDF with the template image as a full-page background
- */
 export async function createTemplatePDF(
   templatePath: string,
   options: TemplateOptions = DEFAULT_OPTIONS
@@ -46,17 +34,12 @@ export async function createTemplatePDF(
   });
 
   const img = await loadImage(templatePath);
-
   const canvas = document.createElement("canvas");
-
   canvas.width = img.width;
   canvas.height = img.height;
-
   const ctx = canvas.getContext("2d");
 
-  if (!ctx) {
-    throw new Error("Unable to create canvas.");
-  }
+  if (!ctx) throw new Error("Unable to create canvas.");
 
   ctx.drawImage(img, 0, 0);
 
@@ -67,100 +50,115 @@ export async function createTemplatePDF(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  doc.addImage(
-    data,
-    options.imageType || "PNG",
-    0,
-    0,
-    pageWidth,
-    pageHeight
-  );
-
+  doc.addImage(data, options.imageType || "PNG", 0, 0, pageWidth, pageHeight);
   return doc;
 }
 
-/**
- * Generates a QR code as a DataURL
- */
-export async function generateQRCode(url: string): Promise<string> {
-  return await QRCode.toDataURL(url, {
-    width: 300,
-    margin: 1,
-    errorCorrectionLevel: "H",
-  });
-}
-
-/**
- * Draw QR code onto the PDF
- */
-export function addQRCode(
-  doc: jsPDF,
-  qr: string,
-  x: number,
-  y: number,
-  size: number
-) {
-  doc.addImage(qr, "PNG", x, y, size, size);
-}
-
-/**
- * Centered text helper
- */
 export function addCenteredText(
   doc: jsPDF,
   text: string,
   y: number,
   fontSize = 12,
   font = "helvetica",
-  style: "normal" | "bold" = "normal"
+  style: "normal" | "bold" | "italic" = "normal",
+  color = "#0f2347"
 ) {
   doc.setFont(font, style);
-
   doc.setFontSize(fontSize);
-
+  doc.setTextColor(color);
+  
   const width = doc.internal.pageSize.getWidth();
-
-  doc.text(text, width / 2, y, {
-    align: "center",
-  });
+  doc.text(text, width / 2, y, { align: "center" });
 }
 
-/**
- * Left aligned helper
- */
 export function addText(
   doc: jsPDF,
   text: string,
   x: number,
   y: number,
   fontSize = 10,
-  style: "normal" | "bold" = "normal"
+  style: "normal" | "bold" | "italic" = "normal",
+  align: "left" | "center" | "right" = "left",
+  font = "helvetica",
+  color = "#333333"
 ) {
-  doc.setFont("helvetica", style);
-
+  doc.setFont(font, style);
   doc.setFontSize(fontSize);
-
-  doc.text(text, x, y);
+  doc.setTextColor(color);
+  doc.text(text, x, y, { align });
 }
 
 /**
- * Formats dates consistently
+ * Like addText, but shrinks the font (down to minFontSize) until the
+ * string fits within maxWidthMm. Use this for any field placed in a
+ * fixed-width gap in these templates (inline text between two pieces of
+ * baked-in artwork, a value squeezed between an icon and the next
+ * column, etc.) where the incoming data length isn't guaranteed — a
+ * fixed font size that happens to fit "Rahman" or "SEC-2026-C843" will
+ * silently overflow for a longer name or ID.
  */
+export function addTextFit(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  maxWidthMm: number,
+  fontSize = 11,
+  style: "normal" | "bold" | "italic" = "normal",
+  align: "left" | "center" | "right" = "left",
+  font = "helvetica",
+  color = "#333333",
+  minFontSize = 6
+) {
+  doc.setFont(font, style);
+  let size = fontSize;
+  doc.setFontSize(size);
+  while (doc.getTextWidth(text) > maxWidthMm && size > minFontSize) {
+    size -= 0.5;
+    doc.setFontSize(size);
+  }
+  doc.setTextColor(color);
+  doc.text(text, x, y, { align });
+  return size;
+}
+
 export function formatDate(date?: string | Date | null): string {
   if (!date) return "";
-
   const d = new Date(date);
-
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
 /**
- * Downloads the PDF
+ * Compact "24 Jul - 24 Oct 2026" style range for tight spaces (e.g. the
+ * certificate's bottom info row, which only has a few mm of vertical
+ * clearance and no room for a full "July 24, 2026 - October 24, 2026"
+ * string). Falls back to the raw strings if either date can't be parsed.
  */
+export function formatDateRangeShort(
+  start?: string | Date | null,
+  end?: string | Date | null
+): string {
+  if (!start || !end) return "";
+  const ds = new Date(start);
+  const de = new Date(end);
+  if (isNaN(ds.getTime()) || isNaN(de.getTime())) {
+    return `${start} - ${end}`;
+  }
+  const dayMonth = (d: Date) =>
+    d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  const dayMonthYear = (d: Date) =>
+    d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+
+  if (ds.getFullYear() === de.getFullYear()) {
+    return `${dayMonth(ds)} - ${dayMonthYear(de)}`;
+  }
+  return `${dayMonthYear(ds)} - ${dayMonthYear(de)}`;
+}
+
 export function savePDF(doc: jsPDF, filename: string) {
   doc.save(filename);
 }

@@ -1,13 +1,10 @@
 import type { DocumentData } from "./types";
 import {
   createTemplatePDF,
-  generateQRCode,
-  addQRCode,
   addText,
   formatDate,
   savePDF,
 } from "./pdfGenerator";
-
 import { OFFER } from "./coordinates";
 
 export async function generateOfferLetter({
@@ -15,110 +12,34 @@ export async function generateOfferLetter({
   internName,
   offerFields,
 }: DocumentData) {
-  // Initialize the PDF document from the template
-const doc = await createTemplatePDF("/templates/offerletter.png");
-
-  // -----------------------------
-  // Extract Data (Mapped via Step 3)
-  // -----------------------------
+  const doc = await createTemplatePDF("/templates/offerletter.png");
 
   const internId = application.internId || "Pending";
-
   const program = application.programName ?? "Internship Program";
-
-  const department = offerFields.department;
-
-  const supervisor = offerFields.supervisor;
-
-  const duration = offerFields.duration;
-
-  const internshipMode = offerFields.internshipMode;
-
-  const startDate = offerFields.startDate;
-
-  const endDate = offerFields.endDate;
-
   const issueDate = formatDate(new Date());
 
-  const offerId = application.id;
+  const themeBlue = "#0f2347";
+  const themeGray = "#333333";
 
-  // -----------------------------
-  // QR
-  // -----------------------------
+  // --- Header: date (right-aligned so it can never overrun the page edge) ---
+  addText(doc, issueDate, OFFER.issueDate.x, OFFER.issueDate.y, 10, "normal", "right", "helvetica", themeGray);
 
-  const verificationURL = `${window.location.origin}/verify/${offerId}`;
+  // --- Greeting line: "Dear ___" / "Department: ___" ---
+  addText(doc, internName, OFFER.internNameGreeting.x, OFFER.internNameGreeting.y, 12, "bold", "left", "times", themeBlue);
+  addText(doc, offerFields.department, OFFER.departmentHeader.x, OFFER.departmentHeader.y, 9.5, "normal", "left", "helvetica", themeGray);
 
-  const qr = await generateQRCode(verificationURL);
+  // --- Internship Details table (5 rows, ~9mm apart) ---
+  addText(doc, internName, OFFER.internName.x, OFFER.internName.y, 10, "bold", "left", "times", themeBlue);
+  addText(doc, internId, OFFER.internId.x, OFFER.internId.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.department, OFFER.departmentTable.x, OFFER.departmentTable.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, program, OFFER.programTable.x, OFFER.programTable.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.duration, OFFER.duration.x, OFFER.duration.y, 9, "normal", "left", "helvetica", themeGray);
 
-  // -----------------------------
-  // Fill Template
-  // -----------------------------
+  addText(doc, offerFields.startDate, OFFER.startDate.x, OFFER.startDate.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.endDate, OFFER.endDate.x, OFFER.endDate.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.internshipMode, OFFER.internshipType.x, OFFER.internshipType.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.supervisor, OFFER.supervisor.x, OFFER.supervisor.y, 9, "normal", "left", "helvetica", themeGray);
+  addText(doc, offerFields.mode, OFFER.mode.x, OFFER.mode.y, 9, "normal", "left", "helvetica", themeGray);
 
-  addText(doc, issueDate, OFFER.issueDate.x, OFFER.issueDate.y, 11);
-
-  addText(doc, offerId, OFFER.offerIdTop.x, OFFER.offerIdTop.y, 12, "bold");
-
-  addText(
-    doc,
-    offerId,
-    OFFER.offerIdBottom.x,
-    OFFER.offerIdBottom.y,
-    11,
-    "bold"
-  );
-
-  addText(
-    doc,
-    internName,
-    OFFER.internNameGreeting.x,
-    OFFER.internNameGreeting.y,
-    12,
-    "bold"
-  );
-
-  addText(doc, department, OFFER.department.x, OFFER.department.y);
-
-  addText(doc, program, OFFER.program.x, OFFER.program.y);
-
-  addText(doc, internName, OFFER.internName.x, OFFER.internName.y);
-
-  addText(doc, internId, OFFER.internId.x, OFFER.internId.y);
-
-  addText(doc, department, OFFER.departmentTable.x, OFFER.departmentTable.y);
-
-  addText(doc, program, OFFER.programTable.x, OFFER.programTable.y);
-
-  addText(doc, duration, OFFER.duration.x, OFFER.duration.y);
-
-  addText(doc, startDate, OFFER.startDate.x, OFFER.startDate.y);
-
-  addText(doc, endDate, OFFER.endDate.x, OFFER.endDate.y);
-
-  addText(
-    doc,
-    internshipMode,
-    OFFER.internshipType.x,
-    OFFER.internshipType.y
-  );
-
-  addText(doc, supervisor, OFFER.supervisor.x, OFFER.supervisor.y);
-
-  addText(doc, offerFields.mode, OFFER.mode.x, OFFER.mode.y);
-
-  addQRCode(
-    doc,
-    qr,
-    OFFER.qr.x,
-    OFFER.qr.y,
-    OFFER.qr.size
-  );
-
-  // -----------------------------
-  // Download
-  // -----------------------------
-
-  savePDF(
-    doc,
-    `${internName}-Offer-Letter.pdf`
-  );
+  savePDF(doc, `${internName}-Offer-Letter.pdf`);
 }
