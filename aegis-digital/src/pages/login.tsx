@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { setStudentToken, API_BASE } from '@/lib/studentApi';
+import { setStudentToken, authFetch, safeJson } from '@/lib/studentApi';
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -43,7 +43,7 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/api/login`, {
+      const response = await authFetch('/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,9 +54,9 @@ export default function Login() {
         }),
       });
 
-      const result = await response.json();
+      const result = await safeJson(response);
 
-      if (!response.ok) {
+      if (!response.ok || !result.success) {
         throw new Error(result.message || 'Invalid credentials.');
       }
 
@@ -78,7 +78,6 @@ export default function Login() {
       });
 
       // 3. MASTER ROUTE BYPASS: Force clear browser context painting state
-      // This completely skips router transition lag pools, mounting dashboard cleanly on frame one!
       window.location.href = '/dashboard';
 
     } catch (error: any) {
