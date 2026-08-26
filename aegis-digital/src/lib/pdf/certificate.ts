@@ -1,3 +1,13 @@
+import {
+  createTemplatePDF,
+  addCenteredText,
+  addTextFit,
+  addText,
+  formatDate,
+  formatDateRangeShort,
+  savePDF,
+} from "./pdfGenerator";
+
 /**
  * All coordinates are in millimeters (jsPDF unit = mm).
  *
@@ -137,6 +147,73 @@ export const RECOMMENDATION = {
 // ============================================================================
 
 export const generateCertificate = async ({ application, internName, offerFields }: any) => {
-  console.log("Certificate generation triggered with data:", { application, internName, offerFields });
-  alert("Certificate generation is being wired up. Check the console for the passed data!");
+  try {
+    // 1. Initialize the PDF with the template background
+    // Make sure your template image is placed in the public/templates/ folder!
+    const doc = await createTemplatePDF("/templates/certificate.png", {
+      orientation: "landscape",
+      format: [210, 150], // 210x150 mm as defined in the layout notes
+      imageType: "PNG",
+    });
+
+    // Fallback variables
+    const certId = application.internId || application.id.substring(0, 8).toUpperCase();
+    const issueDateStr = application.certificateIssuedAt || new Date().toISOString();
+
+    // 2. Certificate ID (Top Right)
+    addText(
+      doc, 
+      certId, 
+      CERTIFICATE.certificateId.x, 
+      CERTIFICATE.certificateId.y, 
+      11, "bold", "left", "helvetica", "#b28d42" // Gold-ish color for ID
+    );
+
+    // 3. Main Intern Name (Centered, large)
+    addCenteredText(
+      doc, 
+      (internName || "Student").toUpperCase(), 
+      CERTIFICATE.internName.y, 
+      28, "helvetica", "bold", "#0f2347"
+    );
+
+    // 4. Inline Intern Name (Small gap right before "has successfully completed")
+    addTextFit(
+      doc, 
+      internName || "Student", 
+      CERTIFICATE.internNameInline.x + 14, // Anchor to the right edge of the gap
+      CERTIFICATE.internNameInline.y, 
+      45, 11, "bold", "right", "helvetica", "#0f2347"
+    );
+
+    // 5. Program Name (Inline after "the")
+    addTextFit(
+      doc, 
+      offerFields.department || application.programName, 
+      CERTIFICATE.program.x, 
+      CERTIFICATE.program.y, 
+      75, 12, "bold", "left", "helvetica", "#0f2347"
+    );
+
+    // 6. Bottom Info Row (Period, Duration, Department, ID, Issue Date)
+    const periodText = formatDateRangeShort(offerFields.startDate, offerFields.endDate);
+    
+    addTextFit(doc, periodText, CERTIFICATE.period.x, CERTIFICATE.period.y, 25, 8, "bold", "left", "helvetica", "#333333");
+    
+    addTextFit(doc, offerFields.duration || "3 Months", CERTIFICATE.duration.x, CERTIFICATE.duration.y, 25, 8, "bold", "left", "helvetica", "#333333");
+    
+    addTextFit(doc, offerFields.department || application.programName, CERTIFICATE.department.x, CERTIFICATE.department.y, 28, 8, "bold", "left", "helvetica", "#333333");
+    
+    addTextFit(doc, certId, CERTIFICATE.internId.x, CERTIFICATE.internId.y, 25, 8, "bold", "left", "helvetica", "#333333");
+    
+    addTextFit(doc, formatDate(issueDateStr), CERTIFICATE.issueDate.x, CERTIFICATE.issueDate.y, 30, 8, "bold", "left", "helvetica", "#333333");
+
+    // 7. Trigger the download
+    const safeName = (internName || "Student").replace(/[^a-zA-Z0-9]/g, "_");
+    savePDF(doc, `${safeName}_Certificate_${certId}.pdf`);
+
+  } catch (error) {
+    console.error("Error generating certificate PDF:", error);
+    alert("Error generating PDF. Make sure /templates/certificate.png exists in your public folder!");
+  }
 };
