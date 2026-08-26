@@ -147,12 +147,6 @@ export default function Login() {
                   )}
                 />
 
-                <div className="flex items-center justify-between text-sm">
-                  <button type="button" className="text-primary hover:underline" data-testid="link-forgot-password" disabled={isSubmitting}>
-                    Forgot password?
-                  </button>
-                </div>
-
                 <Button type="submit" className="w-full glow-blue" data-testid="button-login-submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
