@@ -17,7 +17,7 @@
 // CORS origin list for http://localhost:5173).
 export const API_BASE = import.meta.env.DEV
   ? 'https://aegis-api.rafiuraza474.workers.dev'
-  : '';
+  : 'https://api.penjagasiber.cc.cd';
 
 const TOKEN_KEY = 'aegis_token';
 
