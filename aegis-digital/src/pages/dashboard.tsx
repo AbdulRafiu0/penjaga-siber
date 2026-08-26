@@ -187,25 +187,35 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  const handleOpenSecureFile = (fileKey: string) => {
+  const handleOpenSecureFile = async (fileKey: string) => {
     try {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Use a clean relative path so the browser automatically attaches your session credentials 
-      // while displaying your custom domain in the address bar!
-      const url = `/api/files/${safePath}?token=${token}`;
+      // Fetch the file securely through your domain route using authFetch (which injects your Bearer token)
+      const response = await authFetch(`/api/files/${safePath}?token=${token}`);
       
+      if (!response.ok) {
+        throw new Error("Failed to authenticate or locate file.");
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Open the secure blob in a new tab
       const link = document.createElement('a');
-      link.href = url;
+      link.href = blobUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up the object URL after a short delay
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
       
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
