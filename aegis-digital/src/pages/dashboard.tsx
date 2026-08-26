@@ -194,8 +194,8 @@ export default function Dashboard() {
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Clean relative path handled securely by your custom domain worker route
-      const url = `/api/files/${safePath}?token=${token}`;
+      // Hardcoded directly to your custom domain to guarantee the workers.dev URL stays hidden
+      const url = `https://penjagasiber.cc.cd/api/files/${safePath}?token=${token}`;
       
       const link = document.createElement('a');
       link.href = url;
