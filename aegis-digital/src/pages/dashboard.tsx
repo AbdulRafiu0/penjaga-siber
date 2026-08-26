@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
-import { authFetch, safeJson, getStudentToken } from '@/lib/studentApi';
+import { authFetch, safeJson, getStudentToken, API_BASE } from '@/lib/studentApi';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
@@ -192,15 +192,17 @@ export default function Dashboard() {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
-      // FIX: Split the path by slash and encode parts separately. 
-      // This prevents '/' from becoming '%2F', which causes 404 Access Denied errors on Cloudflare.
+      // 1. Keep slashes intact. Cloudflare's firewall drops %2F with a 404 Access Denied.
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      const url = `/api/files/${safePath}?token=${token}`;
+      // 2. Direct hit to your Worker API (bypassing any local proxy issues)
+      const url = `${API_BASE}/api/files/${safePath}?token=${token}`;
       
+      // 3. Invisible link click to securely bypass browser popup blockers
       const link = document.createElement('a');
       link.href = url;
-      link.target = '_blank'; 
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       
       document.body.appendChild(link);
       link.click();
