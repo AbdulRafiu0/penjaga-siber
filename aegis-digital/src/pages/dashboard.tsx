@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { generateOfferLetter } from "@/lib/pdf/offerLetter";
 import { generateCertificate } from "@/lib/pdf/certificate";
 import { generateRecommendation } from "@/lib/pdf/recommendation";
-import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, AlertCircle, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone, CreditCard, UploadCloud, ImageIcon, RefreshCw, PlusCircle, LayoutGrid, X, MessageSquare, Send } from 'lucide-react';
+import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone, CreditCard, UploadCloud, ImageIcon, RefreshCw, PlusCircle, LayoutGrid, X, MessageSquare, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,6 +185,19 @@ export default function Dashboard() {
       const data = await res.json();
       if (data.success) setAnnouncements(data.announcements);
     } catch (e) { console.error(e); }
+  };
+
+  const handleOpenSecureFile = async (fileKey: string) => {
+    try {
+      const res = await authFetch(`/api/files/${encodeURIComponent(fileKey)}`);
+      if (!res.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
+    }
   };
 
   const handleEnrollNewCourse = async () => {
@@ -637,9 +650,13 @@ export default function Dashboard() {
                             {hasSubmitted ? <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-full">Submitted</Badge> : <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center group-data-[open]:rotate-180 transition-transform"><PlusCircle className="h-4 w-4 text-muted-foreground" /></div>}
                           </summary>
                           <div className="mt-4 pt-4 border-t space-y-4">
-                            <a href={`${API_BASE}/api/files/${encodeURIComponent(task.file_key)}`} target="_blank" rel="noopener noreferrer" className="p-3 rounded-lg border bg-muted/30 text-primary text-sm font-medium flex items-center gap-2 hover:bg-muted/60 transition-colors">
-                              <ExternalLink className="h-4 w-4" /> Open Architecture / Requirements Document
-                            </a>
+                            <button 
+                              type="button" 
+                              onClick={() => handleOpenSecureFile(task.file_key)} 
+                              className="w-full p-3 rounded-lg border bg-muted/30 text-primary text-sm font-medium flex items-center gap-2 hover:bg-muted/60 transition-colors text-left"
+                            >
+                              <ExternalLink className="h-4 w-4 shrink-0" /> Open Architecture / Requirements Document
+                            </button>
                             <Button 
                               className="w-full rounded-xl" 
                               disabled={!!hasSubmitted}
