@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
-import { authFetch, safeJson } from '@/lib/studentApi';
+import { authFetch, safeJson, getStudentToken, API_BASE } from '@/lib/studentApi';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
@@ -187,13 +187,12 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  const handleOpenSecureFile = async (fileKey: string) => {
+  const handleOpenSecureFile = (fileKey: string) => {
     try {
-      const res = await authFetch(`/api/files/${encodeURIComponent(fileKey)}`);
-      if (!res.ok) throw new Error('Failed to fetch file');
+      const token = getStudentToken();
+      if (!token) throw new Error("No session token found");
       
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = `${API_BASE}/api/files/${encodeURIComponent(fileKey)}?token=${token}`;
       window.open(url, '_blank');
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
