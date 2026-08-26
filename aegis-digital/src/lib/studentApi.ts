@@ -25,3 +25,10 @@ export async function safeJson(response: Response) {
 export function getStudentToken() {
   return localStorage.getItem('aegis_token') || sessionStorage.getItem('aegis_token');
 }
+
+export function clearStudentSession() {
+  localStorage.removeItem('aegis_token');
+  localStorage.removeItem('aegis_userId');
+  sessionStorage.removeItem('aegis_token');
+  sessionStorage.removeItem('aegis_userId');
+}
