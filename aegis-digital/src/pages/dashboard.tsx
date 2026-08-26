@@ -192,13 +192,9 @@ export default function Dashboard() {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
-      // 1. Keep slashes intact. Cloudflare's firewall drops %2F with a 404 Access Denied.
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
-      
-      // 2. Direct hit to your Worker API (bypassing any local proxy issues)
       const url = `${API_BASE}/api/files/${safePath}?token=${token}`;
       
-      // 3. Invisible link click to securely bypass browser popup blockers
       const link = document.createElement('a');
       link.href = url;
       link.target = '_blank';
