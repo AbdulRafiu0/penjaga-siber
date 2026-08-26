@@ -2,9 +2,7 @@
 // Attaches the signed session token (from /api/login) to every request and
 // redirects to /login if the server ever responds 401 (expired/invalid token).
 
-export const API_BASE = import.meta.env.DEV
-  ? 'https://aegis-api.rafiuraza474.workers.dev'
-  : '';
+export const API_BASE = 'https://aegis-api.rafiuraza474.workers.dev';
 
 const TOKEN_KEY = 'aegis_token';
 
