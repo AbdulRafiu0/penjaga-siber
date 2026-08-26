@@ -194,8 +194,9 @@ export default function Dashboard() {
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Hardcoded directly to your custom domain to guarantee the workers.dev URL stays hidden
-      const url = `https://penjagasiber.cc.cd/api/files/${safePath}?token=${token}`;
+      // Use a clean relative path so the browser automatically attaches your session credentials 
+      // while displaying your custom domain in the address bar!
+      const url = `/api/files/${safePath}?token=${token}`;
       
       const link = document.createElement('a');
       link.href = url;
