@@ -1,2 +1,10 @@
 /api/* https://aegis-api.rafiuraza474.workers.dev/api/:splat 200
 /* /index.html 200
+```[cite: 3]
+
+### How to Apply & Test
+1. Save the file inside your `public` folder.
+2. Push the changes to GitHub so Cloudflare Pages builds a fresh deployment.
+3. Once built, open `[https://penjagasiber.cc.cd/api/stats](https://penjagasiber.cc.cd/api/stats)` directly in your browser. 
+
+As soon as that URL returns your backend JSON response instead of a 404, your proxy is live, your files will open instantly, and your `workers.dev` URL will be completely hidden!
