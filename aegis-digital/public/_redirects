@@ -1,10 +1,2 @@
-# Proxy all API traffic to the Cloudflare Worker backend so students never
-# see the raw workers.dev URL. This is what makes the relative /api/* paths
-# produced by studentApi.ts (API_BASE = '' in production) actually reach
-# the backend.
-/api/*  https://aegis-api.rafiuraza474.workers.dev/api/:splat  200
-
-# SPA fallback. This MUST come after the /api/* rule above — Pages matches
-# _redirects top-to-bottom, so if this were first every /api/* request would
-# match it and get index.html instead of being proxied.
-/*      /index.html  200
+/api/* https://aegis-api.rafiuraza474.workers.dev/api/:splat 200
+/* /index.html 200
