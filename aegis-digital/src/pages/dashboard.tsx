@@ -193,6 +193,8 @@ export default function Dashboard() {
       if (!token) throw new Error("No session token found");
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
+      
+      // Clean relative path routed directly via Cloudflare Worker route mapping
       const url = `${API_BASE}/api/files/${safePath}?token=${token}`;
       
       const link = document.createElement('a');
