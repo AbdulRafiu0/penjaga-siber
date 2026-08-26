@@ -1,5 +1,3 @@
-// Since Cloudflare routes /api/* directly to your worker, 
-// leaving API_BASE empty makes all requests use your clean domain name!
 export const API_BASE = "";
 
 export async function authFetch(url: string, options: RequestInit = {}) {

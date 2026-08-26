@@ -194,7 +194,7 @@ export default function Dashboard() {
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Clean relative path handled by Cloudflare Worker route mapping on your domain
+      // Clean relative path handled securely by your custom domain worker route
       const url = `/api/files/${safePath}?token=${token}`;
       
       const link = document.createElement('a');
