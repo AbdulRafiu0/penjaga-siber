@@ -192,14 +192,15 @@ export default function Dashboard() {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
-      // We are NOT using API_BASE here. 
-      // This forces the browser to use your _redirects proxy to hide the backend URL.
-      const url = `/api/files/${encodeURIComponent(fileKey)}?token=${token}`;
+      // FIX: Split the path by slash and encode parts separately. 
+      // This prevents '/' from becoming '%2F', which causes 404 Access Denied errors on Cloudflare.
+      const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Create a temporary link to open the file natively, bypassing popup blockers
+      const url = `/api/files/${safePath}?token=${token}`;
+      
       const link = document.createElement('a');
       link.href = url;
-      link.target = '_blank'; // Opens in a new tab securely
+      link.target = '_blank'; 
       
       document.body.appendChild(link);
       link.click();
