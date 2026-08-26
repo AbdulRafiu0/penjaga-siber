@@ -187,34 +187,32 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  const handleOpenSecureFile = async (fileKey: string) => {
+ const handleOpenSecureFile = async (fileKey: string) => {
     try {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
       
-      // Fetch the file securely through your domain route using authFetch (which injects your Bearer token)
+      // Fetch securely through your custom domain route
       const response = await authFetch(`/api/files/${safePath}?token=${token}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to authenticate or locate file.");
-      }
+      if (!response.ok) throw new Error("Failed to load document.");
       
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       
-      // Open the secure blob in a new tab
+      // Extract a clean file name from the key
+      const fileName = fileKey.split('/').pop() || 'document.pdf';
+      
+      // Trigger a clean local download/view without ever showing a worker URL
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.download = fileName;
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up the object URL after a short delay
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
       
     } catch (e) {
