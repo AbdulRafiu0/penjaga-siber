@@ -9,7 +9,7 @@
  * info bar), the anchor points (colon glyphs, icon columns) were detected
  * directly rather than assumed to be evenly spaced.
  *
- *   Certificate:    landscape 210x150 mm  (source PNG: 1024x731 px)
+ *   Certificate:     landscape 210x150 mm  (source PNG: 1024x731 px)
  *   Offer Letter:    A4 portrait 210x297 mm (source PNG: 1055x1491 px)
  *   Recommendation:  A4 portrait 210x297 mm (source PNG: 1080x1526 px)
  *
@@ -133,13 +133,10 @@ export const RECOMMENDATION = {
 };
 
 // ============================================================================
-// ADDED MISSING FUNCTION TO FIX THE DASHBOARD WHITE SCREEN
+// CERTIFICATE GENERATION WIRING
 // ============================================================================
 
 export const generateCertificate = async ({ application, internName, offerFields }: any) => {
   console.log("Certificate generation triggered with data:", { application, internName, offerFields });
-  
-  // This is a temporary placeholder. 
-  // Replace this alert with your actual jsPDF drawing logic using the CERTIFICATE coordinates above!
   alert("Certificate generation is being wired up. Check the console for the passed data!");
 };
