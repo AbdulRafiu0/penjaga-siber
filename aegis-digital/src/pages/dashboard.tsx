@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { generateOfferLetter } from "@/lib/pdf/offerLetter";
 import { generateCertificate } from "@/lib/pdf/certificate";
 import { generateRecommendation } from "@/lib/pdf/recommendation";
-import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone, CreditCard, UploadCloud, ImageIcon, RefreshCw, PlusCircle, LayoutGrid, X, MessageSquare, Send } from 'lucide-react';
+import { Shield, BookOpen, Calendar, Download, CheckCircle, Clock, FileText, Loader2, Award, Lock, ExternalLink, XCircle, Megaphone, CreditCard, UploadCloud, ImageIcon, RefreshCw, PlusCircle, LayoutGrid, X, MessageSquare, Send, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,9 @@ export default function Dashboard() {
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [selectedNewTrack, setSelectedNewTrack] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
+
+  // Mobile Sidebar State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Message States
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -187,24 +190,19 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
- const handleOpenSecureFile = async (fileKey: string) => {
+  const handleOpenSecureFile = async (fileKey: string) => {
     try {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
       const safePath = fileKey.split('/').map(encodeURIComponent).join('/');
-      
-      // Fetch securely through your custom domain route
       const response = await authFetch(`/api/files/${safePath}?token=${token}`);
-      if (!response.ok) throw new Error("Failed to load document.");
+      if (!response.ok) throw new Error("Failed to load secure document.");
       
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
-      
-      // Extract a clean file name from the key
       const fileName = fileKey.split('/').pop() || 'document.pdf';
       
-      // Trigger a clean local download/view without ever showing a worker URL
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = fileName;
@@ -214,7 +212,6 @@ export default function Dashboard() {
       document.body.removeChild(link);
       
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-      
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
     }
@@ -381,9 +378,51 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col justify-between z-10">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      {/* Mobile Top Navbar */}
+      <div className="md:hidden flex items-center justify-between p-4 border-b bg-card z-20">
+        <a href="/" className="flex items-center gap-2">
+          <Shield className="h-6 w-6 text-primary" />
+          <span className="font-bold text-lg">Penjaga Siber</span>
+        </a>
+        <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <Menu className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 md:hidden flex flex-col p-6 justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-8 w-8 text-primary" />
+                  <span className="text-xl font-bold">Penjaga Siber</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                  <X className="h-6 w-6" />
+                </Button>
+              </div>
+              <nav className="space-y-3">
+                <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                  <LayoutGrid className="h-5 w-5" /><span>Dashboard</span>
+                </a>
+                <button onClick={() => { setIsMobileMenuOpen(false); setIsContactModalOpen(true); fetchMessageHistory(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted/10 font-medium text-left">
+                  <MessageSquare className="h-5 w-5" /><span>Contact Admin</span>
+                </button>
+              </nav>
+            </div>
+            <button onClick={() => { logout(); setLocation('/login?logout=true'); }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-destructive bg-destructive/10 font-medium w-full text-left">Logout</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border p-6 flex-col justify-between z-10">
         <div>
           <a href="/" className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
             <Shield className="h-8 w-8 text-primary" />
@@ -401,15 +440,16 @@ export default function Dashboard() {
         <button onClick={() => { logout(); setLocation('/login?logout=true'); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors w-full text-left font-medium mb-2">Logout</button>
       </div>
 
-      <div className="ml-64 p-8 relative">
+      {/* Main Content Area */}
+      <div className="flex-1 md:ml-64 p-4 sm:p-6 md:p-8 max-w-full overflow-x-hidden">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-4xl font-bold mb-2 tracking-tight">Welcome back, {internName || "Student"}</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2 tracking-tight">Welcome back, {internName || "Student"}</h1>
               {!hasNoApplication && (
-                <p className="text-muted-foreground flex items-center gap-2">
+                <p className="text-muted-foreground flex items-center gap-2 text-sm sm:text-base">
                   Intern ID: <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-primary font-bold border">{displayInternId}</code>
                 </p>
               )}
@@ -418,12 +458,12 @@ export default function Dashboard() {
 
           {/* Professional Course Selector Tabs */}
           {applications.length > 0 && (
-            <div className="flex items-center gap-2 mb-8 bg-muted/30 p-1.5 rounded-2xl border w-fit max-w-full overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-2 mb-8 bg-muted/30 p-1.5 rounded-2xl border w-full sm:w-fit overflow-x-auto scrollbar-hide">
               {applications.map((app) => (
                 <button
                   key={app.id}
                   onClick={() => setActiveAppId(app.id)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 flex items-center gap-2 ${
+                  className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 flex items-center gap-2 ${
                     activeAppId === app.id
                       ? 'bg-background text-foreground shadow-sm ring-1 ring-border'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -437,11 +477,11 @@ export default function Dashboard() {
                 </button>
               ))}
               
-              <div className="w-px h-8 bg-border mx-1 shrink-0" />
+              <div className="w-px h-8 bg-border mx-1 shrink-0 hidden sm:block" />
               
               <button 
                 onClick={() => setIsAddCourseModalOpen(true)}
-                className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-primary hover:bg-primary/10 flex items-center gap-2"
+                className="shrink-0 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-primary hover:bg-primary/10 flex items-center gap-2"
               >
                 <PlusCircle className="h-4 w-4" /> Enroll New
               </button>
@@ -455,13 +495,13 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Syncing your secure pipeline...</p>
             </Card>
           ) : hasNoApplication ? (
-            <Card className="border border-border bg-card p-12 text-center rounded-2xl shadow-sm">
+            <Card className="border border-border bg-card p-8 sm:p-12 text-center rounded-2xl shadow-sm">
               <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-2xl font-bold tracking-tight mb-2">No Active Enrollments</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">You haven't enrolled in any specialized training tracks yet. Browse our programs to begin your journey.</p>
-              <Button onClick={() => setIsAddCourseModalOpen(true)} size="lg" className="glow-blue rounded-xl">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">No Active Enrollments</h3>
+              <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-md mx-auto">You haven't enrolled in any specialized training tracks yet. Browse our programs to begin your journey.</p>
+              <Button onClick={() => setIsAddCourseModalOpen(true)} size="lg" className="glow-blue rounded-xl w-full sm:w-auto">
                 <PlusCircle className="h-5 w-5 mr-2" /> Explore Programs
               </Button>
             </Card>
@@ -492,7 +532,7 @@ export default function Dashboard() {
                 const statusConfig = isVerified
                   ? { label: 'Verified', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' }
                   : isRejectedPayment
-                  ? { label: 'Rejected — please resubmit', className: 'bg-destructive/10 text-destructive border-destructive/30' }
+                  ? { label: 'Rejected — resubmit', className: 'bg-destructive/10 text-destructive border-destructive/30' }
                   : isUploaded
                   ? { label: 'Pending Review', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' }
                   : isRequested
@@ -502,8 +542,8 @@ export default function Dashboard() {
                 return (
                   <Card className="mb-8 border-primary/20 bg-card shadow-md overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                    <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
-                      <CardTitle className="text-xl flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Certificate Issuance</CardTitle>
+                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 space-y-0 pb-4">
+                      <CardTitle className="text-lg sm:text-xl flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Certificate Issuance</CardTitle>
                       <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusConfig.className}`}>{statusConfig.label}</span>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -530,7 +570,7 @@ export default function Dashboard() {
                               {isUploaded && !isRejectedPayment ? (
                                 <div className="flex items-center gap-2 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-700">
                                   <Clock className="h-4 w-4 shrink-0" />
-                                  <span>Your proof of payment is securely uploaded. Please allow up to 24 hours for administrative review and certificate generation.</span>
+                                  <span>Your proof of payment is securely uploaded. Please allow up to 24 hours for administrative review.</span>
                                 </div>
                               ) : null}
 
@@ -543,7 +583,7 @@ export default function Dashboard() {
                                   setIsDraggingPayment(false);
                                   selectPaymentFile(e.dataTransfer.files?.[0] || null);
                                 }}
-                                className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all ${
+                                className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 sm:p-8 text-center cursor-pointer transition-all ${
                                   isDraggingPayment ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/50 hover:bg-muted/30'
                                 }`}
                               >
@@ -583,7 +623,7 @@ export default function Dashboard() {
 
                               <div className="flex justify-end pt-2">
                                 <Button className="w-full sm:w-auto glow-blue rounded-xl" disabled={!paymentFile || isUploadingPayment} onClick={handleUploadPaymentScreenshot}>
-                                  {isUploadingPayment ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading to Secure Vault...</> : <>{isRejectedPayment ? <RefreshCw className="h-4 w-4 mr-2" /> : <UploadCloud className="h-4 w-4 mr-2" />} {isRejectedPayment ? 'Submit New Screenshot' : 'Confirm & Upload Screenshot'}</>}
+                                  {isUploadingPayment ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</> : <>{isRejectedPayment ? <RefreshCw className="h-4 w-4 mr-2" /> : <UploadCloud className="h-4 w-4 mr-2" />} {isRejectedPayment ? 'Submit New Screenshot' : 'Confirm & Upload'}</>}
                                 </Button>
                               </div>
                             </div>
@@ -602,30 +642,30 @@ export default function Dashboard() {
               })()}
 
               {/* Analytics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
                 <Card className="rounded-2xl border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5 sm:p-6">
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-sm font-medium text-muted-foreground">Assigned Tasks</p>
                       <BookOpen className="h-4 w-4 text-muted-foreground/50" />
                     </div>
-                    <p className="text-4xl font-bold tracking-tight">{progress.assigned}</p>
+                    <p className="text-3xl sm:text-4xl font-bold tracking-tight">{progress.assigned}</p>
                   </CardContent>
                 </Card>
                 <Card className="rounded-2xl border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5 sm:p-6">
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-sm font-medium text-muted-foreground">Approved Validations</p>
                       <CheckCircle className="h-4 w-4 text-emerald-500/70" />
                     </div>
-                    <p className="text-4xl font-bold tracking-tight text-primary">{progress.approved}</p>
+                    <p className="text-3xl sm:text-4xl font-bold tracking-tight text-primary">{progress.approved}</p>
                   </CardContent>
                 </Card>
                 <Card className="rounded-2xl border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5 sm:p-6">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Track Completion</p>
                     <div className="flex items-end gap-2 mb-3">
-                      <p className="text-4xl font-bold tracking-tight">{progress.completionPercent}</p>
+                      <p className="text-3xl sm:text-4xl font-bold tracking-tight">{progress.completionPercent}</p>
                       <span className="text-muted-foreground font-medium pb-1">%</span>
                     </div>
                     <div className="h-2.5 bg-muted rounded-full overflow-hidden">
@@ -643,7 +683,7 @@ export default function Dashboard() {
               </div>
 
               {/* Tasks and Announcements */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8">
                 <Card className="rounded-2xl shadow-sm">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-lg"><Calendar className="h-5 w-5 text-primary" /> Active Assignments</CardTitle>
@@ -667,7 +707,7 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </div>
-                            {hasSubmitted ? <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-full">Submitted</Badge> : <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center group-data-[open]:rotate-180 transition-transform"><PlusCircle className="h-4 w-4 text-muted-foreground" /></div>}
+                            {hasSubmitted ? <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 rounded-full">Submitted</Badge> : <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center group-data-[open]:rotate-180 transition-transform"><PlusCircle className="h-4 w-4 text-muted-foreground" /></div>}
                           </summary>
                           <div className="mt-4 pt-4 border-t space-y-4">
                             <button 
@@ -675,7 +715,7 @@ export default function Dashboard() {
                               onClick={() => handleOpenSecureFile(task.file_key)} 
                               className="w-full p-3 rounded-lg border bg-muted/30 text-primary text-sm font-medium flex items-center gap-2 hover:bg-muted/60 transition-colors text-left"
                             >
-                              <ExternalLink className="h-4 w-4 shrink-0" /> Open Architecture / Requirements Document
+                              <ExternalLink className="h-4 w-4 shrink-0" /> Open Architecture Document
                             </button>
                             <Button 
                               className="w-full rounded-xl" 
@@ -719,7 +759,7 @@ export default function Dashboard() {
                     <CardTitle className="text-xl flex items-center gap-2 tracking-tight"><Award className="h-5 w-5 text-primary" /> Verification Package</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-5 rounded-xl bg-muted/30 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group/item hover:border-primary/30 transition-colors">
+                    <div className="p-4 sm:p-5 rounded-xl bg-muted/30 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <p className="font-semibold text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Digital Appointment Letter</p>
                         <p className="text-xs text-muted-foreground">Official onboarding documentation</p>
@@ -729,10 +769,10 @@ export default function Dashboard() {
                       </Button>
                     </div>
                     
-                    <div className="p-5 rounded-xl bg-muted/30 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group/item hover:border-primary/30 transition-colors">
+                    <div className="p-4 sm:p-5 rounded-xl bg-muted/30 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <p className="font-semibold text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Secure Identity Token</p>
-                        <p className="text-xs text-muted-foreground">Authorization ID: <code className="bg-background px-1.5 py-0.5 rounded text-primary border font-bold font-mono text-[11px] ml-1">{displayInternId}</code></p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[240px] sm:max-w-none">ID: <code className="bg-background px-1.5 py-0.5 rounded text-primary border font-bold font-mono text-[11px] ml-1">{displayInternId}</code></p>
                       </div>
                       <Button size="sm" variant="outline" className="w-full sm:w-auto rounded-lg" onClick={() => { navigator.clipboard.writeText(displayInternId); toast({ title: "Token Copied", description: "Identity token copied to clipboard." }); }}>
                         Copy Token
@@ -895,7 +935,7 @@ export default function Dashboard() {
                               <p className="text-sm text-foreground leading-relaxed">{msg.reply}</p>
                             </div>
                           ) : (
-                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20"><Clock className="h-3 w-3 mr-1" /> Awaiting Admin Review</Badge>
+                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20"><Clock className="h-3 w-3 mr-1" /> Awaiting Admin Review</Badge>
                           )}
                         </div>
                       ))
