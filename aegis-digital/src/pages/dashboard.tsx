@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
-import { authFetch, safeJson, getStudentToken, API_BASE } from '@/lib/studentApi';
+import { authFetch, safeJson } from '@/lib/studentApi';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
@@ -187,15 +187,31 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  const handleOpenSecureFile = (fileKey: string) => {
+  const handleOpenSecureFile = async (fileKey: string) => {
     try {
-      const token = getStudentToken();
-      if (!token) throw new Error("No session token found");
+      toast({ title: 'Downloading...', description: 'Fetching your document securely.' });
       
-      const url = `${API_BASE}/api/files/${encodeURIComponent(fileKey)}?token=${token}`;
-      window.open(url, '_blank');
+      const res = await authFetch(`/api/files/${encodeURIComponent(fileKey)}`);
+      if (!res.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Ensure it saves with the correct extension (pdf, docx, zip, etc.)
+      const ext = fileKey.split('.').pop() || 'pdf';
+      link.download = `Penjaga-Siber-Task.${ext}`; 
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up the temporary URL to free up memory
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch the file securely.' });
     }
   };
 
