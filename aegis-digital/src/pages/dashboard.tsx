@@ -192,13 +192,19 @@ export default function Dashboard() {
       const token = getStudentToken();
       if (!token) throw new Error("No session token found");
       
-      // We removed API_BASE. 
-      // By using a relative URL, your Cloudflare Pages proxy (_redirects) 
-      // will silently route this to the backend without exposing the address!
+      // We are NOT using API_BASE here. 
+      // This forces the browser to use your _redirects proxy to hide the backend URL.
       const url = `/api/files/${encodeURIComponent(fileKey)}?token=${token}`;
       
-      // Opens in a new tab natively streaming the PDF
-      window.open(url, '_blank');
+      // Create a temporary link to open the file natively, bypassing popup blockers
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank'; // Opens in a new tab securely
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not open file securely.' });
     }
