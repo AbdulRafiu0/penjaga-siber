@@ -1,20 +1,7 @@
 // Shared fetch helper for student (logged-in user) API calls.
 // Attaches the signed session token (from /api/login) to every request and
 // redirects to /login if the server ever responds 401 (expired/invalid token).
-// Centralizing this means the Authorization header can't be forgotten on some
-// new student-facing fetch call later.
 
-// In production this is an empty string, so every `${API_BASE}${path}` call
-// site (this file, dashboard.tsx's plain fetch() calls, the task file link,
-// etc.) resolves to a RELATIVE path. The browser then requests that path
-// against the current page's own domain (penjagasiber.cc.cd) instead of the
-// raw workers.dev URL — and Cloudflare Pages' _redirects file transparently
-// proxies anything under /api/* to this same Worker behind the scenes, so
-// students never see it.
-//
-// In local dev there is no Pages proxy in front of Vite, so this still
-// points at the deployed Worker directly (already allowed by the Worker's
-// CORS origin list for http://localhost:5173).
 export const API_BASE = import.meta.env.DEV
   ? 'https://aegis-api.rafiuraza474.workers.dev'
   : '';
@@ -54,4 +41,21 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
   }
 
   return response;
+}
+
+/**
+ * Safely parses a fetch response as JSON, preventing crashes when the server 
+ * returns empty content or an unexpected HTML fallback string.
+ */
+export async function safeJson(response: Response) {
+  try {
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return { success: false, message: 'Server returned an empty response.' };
+    }
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('JSON parsing failed for response:', error);
+    return { success: false, message: 'Invalid server response format.' };
+  }
 }

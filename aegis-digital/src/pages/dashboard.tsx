@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import SubmitTaskModal from '@/components/SubmitTaskModal';
-import { authFetch, API_BASE } from '@/lib/studentApi';
+import { authFetch, safeJson } from '@/lib/studentApi';
 
 interface DBApplication {
   id: string; programName: string; status: string; createdAt: string; internId?: string; certificateIssued?: boolean | number; details?: string;
@@ -130,7 +130,7 @@ export default function Dashboard() {
       }
 
       const response = await authFetch(`/api/applications/student/${userId}`);
-      const data = await response.json();
+      const data = await safeJson(response);
       if (data.success) {
         setApplications(data.applications);
         if (data.applications.length > 0 && !activeAppId) {
@@ -148,7 +148,7 @@ export default function Dashboard() {
     if (!userId) return;
     try {
       const res = await authFetch(`/api/messages/student/${userId}`);
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) setMessageHistory(data.messages);
     } catch (e) {
       console.error(e);
@@ -158,7 +158,7 @@ export default function Dashboard() {
   const fetchAssignedTasks = async (appId: string) => {
     try {
       const res = await authFetch(`/api/tasks?applicationId=${appId}`);
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) setAssignedTasks(data.tasks);
     } catch (e) { console.error(e); }
   };
@@ -166,7 +166,7 @@ export default function Dashboard() {
   const fetchMySubmissions = async (appId: string) => {
     try {
       const res = await authFetch(`/api/submissions/student/${appId}?t=${Date.now()}`);
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) setMySubmissions(data.submissions);
     } catch (e) { console.error(e); }
   };
@@ -174,7 +174,7 @@ export default function Dashboard() {
   const fetchProgress = async (appId: string) => {
     try {
       const res = await authFetch(`/api/progress/${appId}`);
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) setProgress(data.progress);
     } catch (e) { console.error(e); }
   };
@@ -182,7 +182,7 @@ export default function Dashboard() {
   const fetchAnnouncements = async () => {
     try {
       const res = await authFetch(`/api/announcements`);
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) setAnnouncements(data.announcements);
     } catch (e) { console.error(e); }
   };
@@ -223,7 +223,7 @@ export default function Dashboard() {
           details: JSON.stringify({})
         })
       });
-      const data = await response.json();
+      const data = await safeJson(response);
       if (data.success) {
         toast({ title: 'Enrollment Successful', description: `Your application for ${selectedNewTrack} has been submitted.` });
         setIsAddCourseModalOpen(false);
@@ -267,7 +267,7 @@ export default function Dashboard() {
           message: contactMessage
         })
       });
-      const data = await response.json();
+      const data = await safeJson(response);
       
       if (data.success) {
         toast({ title: 'Message Sent', description: 'Your message has been securely forwarded to the admin team.' });
@@ -328,7 +328,7 @@ export default function Dashboard() {
     setIsRequestingPayment(true);
     try {
       const res = await authFetch(`/api/applications/${activeApp.id}/request-payment`, { method: 'POST' });
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) {
         toast({ title: data.alreadyRequested ? 'Already requested' : 'Payment requested', description: data.message });
         syncStudentPipeline();
@@ -347,7 +347,7 @@ export default function Dashboard() {
       const formData = new FormData();
       formData.append('file', paymentFile);
       const res = await authFetch(`/api/applications/${activeApp.id}/payment-screenshot`, { method: 'POST', body: formData });
-      const data = await res.json();
+      const data = await safeJson(res);
       if (data.success) {
         toast({ title: 'Screenshot uploaded', description: 'Awaiting admin verification.' });
         setPaymentFile(null);
